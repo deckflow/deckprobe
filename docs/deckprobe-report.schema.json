@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/deckflow/deckprobe/blob/main/docs/deckprobe-report.schema.json",
+  "title": "DeckProbe JSON envelope v2",
+  "oneOf": [
+    { "$ref": "#/$defs/probeReport" },
+    { "$ref": "#/$defs/valuesReport" },
+    { "$ref": "#/$defs/errorReport" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["schema_version", "tool_version", "status"],
+      "properties": {
+        "schema_version": { "const": 2 },
+        "tool_version": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "probeReport": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["input", "driver", "results", "execution", "diagnostics"],
+          "properties": {
+            "schema_version": { "const": 2 },
+            "tool_version": { "type": "string" },
+            "status": { "enum": ["ok", "partial"] },
+            "input": {
+              "type": "object",
+              "required": ["display_name", "source_kind", "file_size"],
+              "properties": {
+                "display_name": { "type": "string" },
+                "source_kind": { "type": "string", "minLength": 1 },
+                "file_size": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": false
+            },
+            "driver": {
+              "type": "object",
+              "required": ["id", "profile"],
+              "properties": {
+                "id": { "type": "string" },
+                "profile": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "results": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/evidence" }
+            },
+            "execution": { "$ref": "#/$defs/execution" },
+            "diagnostics": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/diagnostic" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "errorReport": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "schema_version": { "const": 2 },
+            "tool_version": { "type": "string" },
+            "status": { "const": "error" },
+            "error": {
+              "type": "object",
+              "required": ["code", "message", "exit_code"],
+              "properties": {
+                "code": {
+                  "enum": [
+                    "CLI_SYNTAX",
+                    "INVALID_REQUEST",
+                    "UNSUPPORTED_TARGET",
+                    "SOURCE_IO",
+                    "UNSUPPORTED_FORMAT",
+                    "MALFORMED_INPUT",
+                    "BUDGET_EXCEEDED",
+                    "PARSER_FAILURE"
+                  ]
+                },
+                "message": { "type": "string" },
+                "exit_code": { "type": "integer", "minimum": 1, "maximum": 6 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "valuesReport": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "view",
+            "input",
+            "driver",
+            "values",
+            "unresolved_targets",
+            "diagnostics"
+          ],
+          "properties": {
+            "schema_version": { "const": 2 },
+            "tool_version": { "type": "string" },
+            "status": { "enum": ["ok", "partial"] },
+            "view": { "const": "values" },
+            "input": {
+              "type": "object",
+              "required": ["display_name", "source_kind", "file_size"],
+              "properties": {
+                "display_name": { "type": "string" },
+                "source_kind": { "type": "string", "minLength": 1 },
+                "file_size": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": false
+            },
+            "driver": {
+              "type": "object",
+              "required": ["id", "profile"],
+              "properties": {
+                "id": { "type": "string" },
+                "profile": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "values": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "unresolved_targets": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "piggyback_targets": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "diagnostics": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/diagnostic" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["target", "status", "confidence", "confidence_score", "path", "source"],
+      "properties": {
+        "target": { "type": "string" },
+        "status": {
+          "enum": [
+            "resolved",
+            "estimated",
+            "planned",
+            "unknown",
+            "unsupported",
+            "invalid",
+            "budget_exceeded",
+            "failed"
+          ]
+        },
+        "value": true,
+        "confidence": { "enum": ["none", "low", "medium", "high", "exact"] },
+        "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "path": { "type": "string" },
+        "source": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": ["probe_level", "paths", "estimated_cost", "actual_cost", "unresolved_targets"],
+      "properties": {
+        "probe_level": { "enum": ["header", "metadata", "deep"] },
+        "paths": { "type": "array", "items": { "type": "string" } },
+        "estimated_cost": { "type": "integer", "minimum": 0 },
+        "actual_cost": {
+          "type": "object",
+          "required": ["physical_bytes_read", "expanded_bytes", "random_reads"],
+          "properties": {
+            "physical_bytes_read": { "type": "integer", "minimum": 0 },
+            "expanded_bytes": { "type": "integer", "minimum": 0 },
+            "random_reads": { "type": "integer", "minimum": 0 },
+            "elapsed_ms": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "unresolved_targets": { "type": "array", "items": { "type": "string" } }
+        ,
+        "piggyback_targets": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["level", "code", "message"],
+      "properties": {
+        "level": { "type": "string" },
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

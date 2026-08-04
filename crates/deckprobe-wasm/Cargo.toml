@@ -1,0 +1,22 @@
+[package]
+name = "deckprobe-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Browser WASM bindings for the DeckProbe document inspection engine"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+deckprobe-core = { path = "../deckprobe-core" }
+deckprobe-engine = { path = "../deckprobe-engine" }
+js-sys = "0.3"
+serde.workspace = true
+serde-wasm-bindgen.workspace = true
+wasm-bindgen.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }

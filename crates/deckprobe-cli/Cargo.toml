@@ -1,0 +1,24 @@
+[package]
+name = "deckprobe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "deckprobe"
+path = "src/main.rs"
+
+[dependencies]
+base64 = "0.22"
+clap.workspace = true
+clap_complete.workspace = true
+clap_mangen = "0.3"
+deckprobe-core = { path = "../deckprobe-core" }
+deckprobe-engine = { path = "../deckprobe-engine" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+zip.workspace = true

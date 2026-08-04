@@ -1,0 +1,13 @@
+[package]
+name = "deckprobe-format-excel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+deckprobe-core = { path = "../deckprobe-core" }
+deckprobe-format-ooxml = { path = "../deckprobe-format-ooxml" }
+serde_json.workspace = true
+

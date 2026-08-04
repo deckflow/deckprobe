@@ -1,0 +1,20 @@
+[package]
+name = "deckprobe-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+deckprobe-core = { path = "../deckprobe-core" }
+deckprobe-format-excel = { path = "../deckprobe-format-excel" }
+deckprobe-format-iwork = { path = "../deckprobe-format-iwork" }
+deckprobe-format-office-legacy = { path = "../deckprobe-format-office-legacy" }
+deckprobe-format-ooxml = { path = "../deckprobe-format-ooxml" }
+deckprobe-format-pdf = { path = "../deckprobe-format-pdf" }
+deckprobe-format-powerpoint = { path = "../deckprobe-format-powerpoint" }
+deckprobe-format-word = { path = "../deckprobe-format-word" }
+serde.workspace = true
+serde_json.workspace = true
+

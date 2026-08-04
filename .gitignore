@@ -1,0 +1,6 @@
+/target/
+*.profraw
+.DS_Store
+packages/deckprobe-js/node_modules/
+packages/deckprobe-js/dist/
+packages/deckprobe-js/wasm/

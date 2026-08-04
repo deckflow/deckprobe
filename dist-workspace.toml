@@ -1,0 +1,35 @@
+[workspace]
+members = ["cargo:."]
+
+# Reproducible binary releases and one-command installers.
+[dist]
+cargo-dist-version = "0.31.0"
+ci = "github"
+installers = ["shell", "powershell"]
+targets = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "aarch64-unknown-linux-musl",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "x86_64-pc-windows-msvc",
+]
+install-path = "CARGO_HOME"
+install-updater = false
+unix-archive = ".tar.gz"
+checksum = "sha256"
+pr-run-mode = "plan"
+github-attestations = true
+
+# Use maintained native macOS runners rather than the retiring macOS 14 image.
+[dist.github-custom-runners]
+aarch64-apple-darwin = "macos-15"
+x86_64-apple-darwin = "macos-15-intel"
+
+# Keep generated CI on the current GitHub-maintained action majors.
+[dist.github-action-commits]
+"actions/checkout" = "v7"
+"actions/upload-artifact" = "v7"
+"actions/download-artifact" = "v8"
+"actions/attest-build-provenance" = "v4"

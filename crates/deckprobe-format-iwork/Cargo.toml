@@ -1,0 +1,17 @@
+[package]
+name = "deckprobe-format-iwork"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+deckprobe-core = { path = "../deckprobe-core" }
+plist.workspace = true
+serde_json.workspace = true
+snap.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+zip.workspace = true

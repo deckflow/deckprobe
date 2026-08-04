@@ -1,0 +1,14 @@
+[package]
+name = "deckprobe-format-ooxml"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+deckprobe-core = { path = "../deckprobe-core" }
+quick-xml.workspace = true
+serde_json.workspace = true
+zip.workspace = true
+

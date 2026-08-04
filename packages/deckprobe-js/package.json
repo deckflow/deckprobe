@@ -1,0 +1,57 @@
+{
+  "name": "@deckflow/deckprobe",
+  "version": "2.2.0",
+  "description": "Browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe WASM",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deckflow/deckprobe.git",
+    "directory": "packages/deckprobe-js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "wasm",
+    "README.md"
+  ],
+  "sideEffects": [
+    "./dist/worker-runtime.js"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist wasm/deckprobe_wasm.js wasm/deckprobe_wasm_bg.wasm wasm/package.json",
+    "build:wasm": "wasm-pack build ../../crates/deckprobe-wasm --target web --release --out-dir ../../packages/deckprobe-js/wasm --out-name deckprobe_wasm --no-pack --no-opt",
+    "build:ts": "tsc -p tsconfig.json",
+    "build": "npm run build:wasm && npm run build:ts",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "check:version": "node ./scripts/check-version.mjs",
+    "check:wasm": "node ./scripts/check-wasm.mjs",
+    "test": "npm run check && npm run check:version && npm run check:wasm && npm run test:iwork && npm run test:browser",
+    "test:iwork": "node ./scripts/iwork-smoke.mjs",
+    "test:browser": "node ./scripts/browser-smoke.mjs",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "playwright": "1.62.1",
+    "typescript": "7.0.2",
+    "wasm-pack": "0.15.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
