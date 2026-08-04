@@ -5,6 +5,9 @@ members = ["cargo:."]
 [dist]
 cargo-dist-version = "0.31.0"
 ci = "github"
+# release.yml is intentionally customized (custom publish-npm job); skip the
+# generated-CI freshness check that would otherwise fail `dist host` on tags.
+allow-dirty = ["ci"]
 installers = ["shell", "powershell"]
 targets = [
     "aarch64-apple-darwin",
