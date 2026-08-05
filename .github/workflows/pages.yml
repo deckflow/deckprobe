@@ -1,0 +1,49 @@
+name: Deploy demo to GitHub Pages
+
+# Site URL: https://deckflow.github.io/deckprobe/
+# Source of truth for the demo remains deckflow/deckprobe-demo; this workflow
+# runs in deckflow/deckprobe so the Pages path matches the repo name.
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [deploy-demo]
+  # Re-deploy when packaging workflows change on main.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout demo
+        uses: actions/checkout@v7
+        with:
+          repository: deckflow/deckprobe-demo
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - uses: actions/deploy-pages@v4
+        id: deployment
