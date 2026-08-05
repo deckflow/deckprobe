@@ -4,6 +4,14 @@ All notable changes to DeckProbe are documented here.
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-08-04
+
+### Fixed
+
+- Include WASM artifacts in the published `@deckflow/deckprobe` package. `wasm-pack`
+  emits `wasm/.gitignore` with `*`, which caused `npm pack` to drop the entire
+  `wasm/` directory; the build now removes that file before packing.
+
 ## [2.2.0] - 2026-08-03
 
 ### Added

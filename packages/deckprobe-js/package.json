@@ -1,6 +1,6 @@
 {
   "name": "@deckflow/deckprobe",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe WASM",
   "type": "module",
   "license": "MIT",
@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "clean": "rm -rf dist wasm/deckprobe_wasm.js wasm/deckprobe_wasm_bg.wasm wasm/package.json",
-    "build:wasm": "wasm-pack build ../../crates/deckprobe-wasm --target web --release --out-dir ../../packages/deckprobe-js/wasm --out-name deckprobe_wasm --no-pack --no-opt",
+    "build:wasm": "wasm-pack build ../../crates/deckprobe-wasm --target web --release --out-dir ../../packages/deckprobe-js/wasm --out-name deckprobe_wasm --no-pack --no-opt && rm -f ../../packages/deckprobe-js/wasm/.gitignore",
     "build:ts": "tsc -p tsconfig.json",
     "build": "npm run build:wasm && npm run build:ts",
     "check": "tsc -p tsconfig.json --noEmit",

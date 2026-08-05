@@ -1,0 +1,8 @@
+# Prefer this over inheriting parent .gitignore for npm packing.
+# wasm-pack also emits wasm/.gitignore with "*"; build:wasm deletes that file
+# so the WASM artifacts listed in "files" are actually packed.
+node_modules/
+benchmark/
+scripts/serve-benchmark.mjs
+*.tsbuildinfo
+.DS_Store
