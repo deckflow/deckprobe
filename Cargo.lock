@@ -329,7 +329,7 @@ checksum = "7eed2c4702fa172d1ce21078faa7c5203e69f5394d48cc436d25928394a867a2"
 
 [[package]]
 name = "deckprobe"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "base64",
  "clap",
@@ -344,7 +344,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-core"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-engine"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "deckprobe-format-excel",
@@ -370,7 +370,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-excel"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "deckprobe-format-ooxml",
@@ -379,7 +379,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-iwork"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "plist",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-office-legacy"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "office_oxide",
@@ -399,7 +399,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-ooxml"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "quick-xml 0.38.4",
@@ -409,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-pdf"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "lopdf",
@@ -418,7 +418,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-powerpoint"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "deckprobe-format-ooxml",
@@ -427,7 +427,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-format-word"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "deckprobe-format-ooxml",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "deckprobe-wasm"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "deckprobe-core",
  "deckprobe-engine",
