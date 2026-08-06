@@ -19,17 +19,26 @@ fn options_from_js(options: JsValue) -> Result<ProbeOptions, JsValue> {
     })
 }
 
-/// Probe browser-owned bytes. Engine failures are returned as schema-v2 error
+/// Probe host-owned bytes. Engine failures are returned as schema-v2 error
 /// reports; only an invalid JS options object throws.
+///
+/// `source_kind` labels where the bytes came from in the report. It defaults to
+/// `browser_bytes`; a Node caller that read a file from disk passes
+/// `local_file` so the report matches what the native CLI would have written.
 #[wasm_bindgen(js_name = probe)]
 pub fn probe_js(
     display_name: String,
     bytes: Uint8Array,
     options: JsValue,
+    source_kind: Option<String>,
 ) -> Result<JsValue, JsValue> {
     let options = options_from_js(options)?;
     let bytes = bytes.to_vec();
-    let source = MemorySource::with_kind(display_name, "browser_bytes", bytes);
+    let source = MemorySource::with_kind(
+        display_name,
+        source_kind.as_deref().unwrap_or("browser_bytes"),
+        bytes,
+    );
     match deckprobe_engine::probe_source(source, options) {
         Ok(report) => to_js_value(&report),
         Err(error) => to_js_value(&deckprobe_engine::error_report(&error)),

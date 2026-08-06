@@ -287,11 +287,77 @@ jobs:
 
           gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
 
-  publish-npm:
-    name: Publish Browser SDK to npm
+  publish-npm-platforms:
+    name: Publish CLI platform packages to npm
     needs:
       - host
     if: ${{ always() && needs.host.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      # The same archives the release serves, so the npm CLI and the shell
+      # installers hand out byte-identical binaries.
+      - name: Fetch dist artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: artifacts-*
+          path: target/distrib/
+          merge-multiple: true
+      - name: Verify tag and package versions
+        working-directory: packages/deckprobe-js
+        shell: bash
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [[ "$package_version" != "$tag_version" ]]; then
+            echo "npm package version $package_version does not match tag $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          node ./scripts/check-version.mjs
+      - name: Build platform packages
+        working-directory: packages/deckprobe-js
+        run: node ./scripts/build-platform-packages.mjs --artifacts ../../target/distrib --out npm
+      - name: Publish platform packages
+        working-directory: packages/deckprobe-js
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          publish_tag=latest
+          if [[ "$package_version" == *-* ]]; then
+            publish_tag=next
+          fi
+          for directory in npm/*/; do
+            name="$(node -p "require('./${directory}package.json').name")"
+            # Publishing eight packages multiplies the failure surface, so make
+            # a rerun after a partial failure safe instead of fatal.
+            if npm view "$name@$package_version" version >/dev/null 2>&1; then
+              echo "$name@$package_version is already published; skipping"
+              continue
+            fi
+            npm publish "$directory" --access public --provenance --tag "$publish_tag"
+          done
+
+  publish-npm:
+    name: Publish CLI and Browser SDK to npm
+    needs:
+      - host
+      # The main package declares the platform packages as optional
+      # dependencies. Publishing it first would ship a version whose CLI cannot
+      # resolve a binary until the rest land.
+      - publish-npm-platforms
+    if: ${{ always() && needs.host.result == 'success' && needs.publish-npm-platforms.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -314,7 +380,9 @@ jobs:
       - name: Install Chromium
         working-directory: packages/deckprobe-js
         run: npx playwright install --with-deps chromium
-      - name: Build and test Browser SDK
+      - name: Build the native CLI the launcher wraps
+        run: cargo build --locked --release -p deckprobe
+      - name: Build and test CLI and Browser SDK
         working-directory: packages/deckprobe-js
         run: |
           npm run build

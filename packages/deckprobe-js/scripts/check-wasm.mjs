@@ -20,4 +20,32 @@ if (missing.length || !validWebAssembly) {
   process.exit(1);
 }
 
-console.log(`WASM artifacts ready: ${wasmDirectory}`);
+// check-version.mjs proves package.json matches the Cargo workspace, but says
+// nothing about the compiled binary sitting in wasm/. A version bump without a
+// rebuild leaves a stale artifact that reports the wrong tool_version in every
+// report, so instantiate it here and fail before the slower browser suites do.
+const packageVersion = JSON.parse(
+  readFileSync(resolve(wasmDirectory, "../package.json"), "utf8"),
+).version;
+
+let runtimeVersion;
+try {
+  const wasmModule = await import(new URL("../wasm/deckprobe_wasm.js", import.meta.url).href);
+  wasmModule.initSync({ module: readFileSync(binaryPath) });
+  runtimeVersion = wasmModule.version();
+} catch (error) {
+  console.error("DeckProbe WASM artifacts could not be instantiated.");
+  console.error(error instanceof Error ? error.message : String(error));
+  console.error("Run `npm run build:wasm` with cargo on PATH.");
+  process.exit(1);
+}
+
+if (runtimeVersion !== packageVersion) {
+  console.error(
+    `DeckProbe WASM reports ${runtimeVersion} but the package is ${packageVersion}.`,
+  );
+  console.error("The artifacts under wasm/ are stale. Run `npm run build:wasm`.");
+  process.exit(1);
+}
+
+console.log(`WASM artifacts ready: ${wasmDirectory} (runtime ${runtimeVersion})`);

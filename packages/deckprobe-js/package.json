@@ -1,7 +1,7 @@
 {
   "name": "@deckflow/deckprobe",
-  "version": "2.2.1",
-  "description": "Browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe WASM",
+  "version": "2.3.0",
+  "description": "CLI and browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -11,22 +11,35 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "node": {
+        "types": "./dist/index.node.d.ts",
+        "default": "./dist/index.node.js"
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     },
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
-    }
+    },
+    "./wasm": "./wasm/deckprobe_wasm_bg.wasm",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "deckprobe": "./bin/deckprobe.js"
   },
   "files": [
+    "bin",
     "dist",
     "src",
     "wasm",
     "README.md"
   ],
   "sideEffects": [
-    "./dist/worker-runtime.js"
+    "./dist/worker-runtime.js",
+    "./dist/index.node.js"
   ],
   "scripts": {
     "clean": "rm -rf dist wasm/deckprobe_wasm.js wasm/deckprobe_wasm_bg.wasm wasm/package.json",
@@ -36,15 +49,30 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "check:version": "node ./scripts/check-version.mjs",
     "check:wasm": "node ./scripts/check-wasm.mjs",
-    "test": "npm run check && npm run check:version && npm run check:wasm && npm run test:iwork && npm run test:browser",
+    "test": "npm run check && npm run check:version && npm run check:wasm && npm run test:iwork && npm run test:browser && npm run test:vite && npm run test:node && npm run test:cli",
     "test:iwork": "node ./scripts/iwork-smoke.mjs",
     "test:browser": "node ./scripts/browser-smoke.mjs",
+    "test:vite": "node ./scripts/vite-smoke.mjs",
+    "test:node": "node ./scripts/node-smoke.mjs",
+    "test:cli": "node ./scripts/cli-smoke.mjs",
+    "build:platforms": "node ./scripts/build-platform-packages.mjs",
     "prepublishOnly": "npm run build && npm test"
   },
+  "optionalDependencies": {
+    "@deckflow/deckprobe-darwin-arm64": "2.3.0",
+    "@deckflow/deckprobe-darwin-x64": "2.3.0",
+    "@deckflow/deckprobe-linux-arm64-gnu": "2.3.0",
+    "@deckflow/deckprobe-linux-arm64-musl": "2.3.0",
+    "@deckflow/deckprobe-linux-x64-gnu": "2.3.0",
+    "@deckflow/deckprobe-linux-x64-musl": "2.3.0",
+    "@deckflow/deckprobe-win32-x64-msvc": "2.3.0"
+  },
   "devDependencies": {
+    "@types/node": "24.10.1",
     "ajv": "8.20.0",
     "playwright": "1.62.1",
     "typescript": "7.0.2",
+    "vite": "7.3.6",
     "wasm-pack": "0.15.0"
   },
   "publishConfig": {

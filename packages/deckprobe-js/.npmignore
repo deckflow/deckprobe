@@ -3,6 +3,8 @@
 # so the WASM artifacts listed in "files" are actually packed.
 node_modules/
 benchmark/
+# Generated platform packages are published separately, never nested here.
+npm/
 scripts/serve-benchmark.mjs
 *.tsbuildinfo
 .DS_Store

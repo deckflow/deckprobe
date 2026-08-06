@@ -45,7 +45,11 @@ impl Confidence {
         }
     }
 
-    pub fn score(self) -> f32 {
+    /// Reported as `confidence_score`. This is `f64` rather than `f32` so the
+    /// JSON is identical everywhere: serde_json prints the shortest round-trip
+    /// form of an `f32` ("0.95"), but the WASM boundary widens `f32` to a JS
+    /// number and would emit 0.949999988079071 for the same value.
+    pub fn score(self) -> f64 {
         match self {
             Self::None => 0.0,
             Self::Low => 0.4,
@@ -281,7 +285,7 @@ pub struct Evidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<Value>,
     pub confidence: Confidence,
-    pub confidence_score: f32,
+    pub confidence_score: f64,
     pub path: String,
     pub source: String,
 }

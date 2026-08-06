@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +8,11 @@ import Ajv2020 from "ajv/dist/2020.js";
 import { chromium } from "playwright";
 
 const packageDirectory = resolve(fileURLToPath(new URL("..", import.meta.url)));
+// check-version.mjs pins this to the Cargo workspace version, so reading it
+// keeps the assertion correct across releases instead of pinning a literal.
+const expectedVersion = JSON.parse(
+  readFileSync(resolve(packageDirectory, "package.json"), "utf8"),
+).version;
 const contentTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".map": "application/json; charset=utf-8",
@@ -147,7 +152,11 @@ try {
   });
 
   assert.deepEqual(browserErrors, [], "browser emitted unexpected errors");
-  assert.equal(outcome.version, "2.2.0");
+  assert.equal(
+    outcome.version,
+    expectedVersion,
+    "the built WASM reports a different version than the package; run `npm run build:wasm`",
+  );
   assert.equal(outcome.directTypeError?.name, "TypeError");
   assert.equal(outcome.workerTypeError?.name, "TypeError");
   assert.match(outcome.terminatedError?.message ?? "", /terminated/);

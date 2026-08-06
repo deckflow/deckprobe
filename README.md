@@ -10,7 +10,7 @@ Ask for the facts you need. Get structured JSON with confidence, evidence, and m
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f80ed.svg)](LICENSE)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
-[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Browser SDK](#browser-js-sdk) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
+[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
 
 </div>
 
@@ -171,18 +171,42 @@ printf '%s\n' \
   '{"path":"deck.pptx"}' | deckprobe --jsonl -t @summary
 ```
 
-## Browser JS SDK
+## JavaScript package
 
-The independently published `@deckflow/deckprobe` package runs the same
-target-driven Rust engine in WebAssembly. It accepts browser `File`, `Blob`,
-`ArrayBuffer`, and `Uint8Array` inputs; document bytes do not leave the
-browser.
+The independently published `@deckflow/deckprobe` package ships the `deckprobe`
+command for Node and runs the same target-driven Rust engine in WebAssembly for
+browsers and Node APIs.
 
-### Install and choose an import
+### Install from npm
 
 ```sh
 npm install @deckflow/deckprobe
 ```
+
+That installs the `deckprobe` command as well. It is the same native binary the
+standalone installers ship, delivered through a per-platform optional
+dependency, so every flag, help page, report, and exit code is identical:
+
+```sh
+npx @deckflow/deckprobe --help
+npx @deckflow/deckprobe -t slide_count deck.pptx
+```
+
+Under Node the package also exposes `probeFile()`, which reads a file and
+returns the same report the CLI writes for it. Note that it holds the whole
+file in memory, while the CLI reads only the paths a probe needs — prefer the
+command, or `--jsonl` for batches, on large inputs.
+
+```ts
+import { probeFile } from "@deckflow/deckprobe";
+
+const report = await probeFile("deck.pptx", { targets: ["@summary"] });
+```
+
+### Browser SDK
+
+In the browser it accepts `File`, `Blob`, `ArrayBuffer`, and `Uint8Array`
+inputs; document bytes do not leave the browser.
 
 | Need | Import | Use it when |
 |---|---|---|
@@ -245,6 +269,27 @@ verify that the application's bundler preserves module-worker URLs. Calling
 `formats()`, `targets(format)`, `schema()`, and `version()` are available from
 the main entry point for discovery and integration tooling. See the
 [package guide](packages/deckprobe-js/README.md) for the complete API.
+
+### Bundler setup
+
+The package resolves its WebAssembly binary relative to its own JavaScript
+wrapper, so a bundler that relocates the wrapper without the binary breaks
+initialization. **Vite's dev server does this in every version** and reports
+either `HTTP status code is not ok` or `expected magic word 00 61 73 6d`,
+while `vite build` works — exclude the package from dependency
+pre-bundling:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: { exclude: ["@deckflow/deckprobe"] },
+});
+```
+
+Main-thread-only applications can instead pass the binary URL to
+`initDeckProbe()` via the `@deckflow/deckprobe/wasm` export. See the package
+guide's [bundler notes](packages/deckprobe-js/README.md#bundlers) for both
+fixes, the per-version error messages, and the CDN, sub-path, and CSP cases.
 
 ## Execution modes
 

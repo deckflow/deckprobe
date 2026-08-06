@@ -24,6 +24,25 @@ interface Pending {
   reject: (error: Error) => void;
 }
 
+/**
+ * An empty `ErrorEvent.message` normally means the module worker never loaded,
+ * which in practice is a bundler that moved `worker-runtime.js` or its WASM
+ * file. Name that cause instead of reporting an unexplained failure.
+ */
+function workerFailure(event: ErrorEvent): string {
+  const location = event.filename
+    ? ` at ${event.filename}${event.lineno ? `:${event.lineno}` : ""}`
+    : "";
+  if (event.message) {
+    return `DeckProbe worker failed: ${event.message}${location}`;
+  }
+  return (
+    `DeckProbe worker failed to load${location}. A bundler may have relocated ` +
+    "the worker module or its WASM file; see the bundler notes in the " +
+    "@deckflow/deckprobe README."
+  );
+}
+
 export class DeckProbeWorker {
   readonly #worker: Worker;
   readonly #pending = new Map<number, Pending>();
@@ -54,7 +73,7 @@ export class DeckProbeWorker {
       }
     });
     this.#worker.addEventListener("error", (event) => {
-      this.#fail(new Error(event.message || "DeckProbe worker failed"));
+      this.#fail(new Error(workerFailure(event)));
     });
     this.#worker.addEventListener("messageerror", () => {
       this.#fail(new Error("DeckProbe worker message could not be decoded"));

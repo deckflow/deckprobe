@@ -4,6 +4,28 @@ All notable changes to DeckProbe are documented here.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-06
+
+### Added
+
+- Node.js is a first-class target for `@deckflow/deckprobe`: the `node` export
+  condition loads WASM from disk, `probe()` initializes lazily without a custom
+  fetch, and `probeFile(path)` returns reports whose `source_kind` matches the
+  native CLI for the same file.
+- The npm package ships the native `deckprobe` CLI on PATH via per-platform
+  optional dependencies. Release CI repackages the same cargo-dist archives that
+  GitHub Releases serve, so `npx @deckflow/deckprobe` and the shell installers
+  hand out byte-identical binaries.
+
+### Fixed
+
+- Browser and native WASM paths now report identical `confidence_score` values
+  for the same probe.
+- The browser SDK exposes a stable WASM entry and guards initialization so
+  bundlers and Workers resolve the module reliably.
+- Release CI coverage for the `--artifacts` platform-package packaging path
+  (archive discovery, tar/zip extraction, and generated manifests).
+
 ## [2.2.1] - 2026-08-04
 
 ### Fixed

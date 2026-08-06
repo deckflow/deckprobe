@@ -1,12 +1,57 @@
 # @deckflow/deckprobe
 
-Browser SDK for DeckProbe 2.2. Documents stay in the browser and are passed to
-the shared Rust engine as bytes; the package does not upload files or use a
-filesystem API.
+DeckProbe 2.2 for JavaScript: the `deckprobe` command line tool for Node, and a
+browser SDK that runs the same Rust engine in WebAssembly. In the browser,
+documents stay in the browser — the package does not upload files.
 
 ```sh
 npm install @deckflow/deckprobe
 ```
+
+## Command line
+
+Installing the package puts `deckprobe` on `PATH`, or run it without installing:
+
+```sh
+npx @deckflow/deckprobe --help
+npx @deckflow/deckprobe -t slide_count deck.pptx
+```
+
+This is the same native binary the standalone installers ship, so every flag,
+help page, JSON report, and exit code matches the
+[CLI reference](https://github.com/deckflow/deckprobe/blob/main/docs/CLI-REFERENCE.md)
+exactly. The binary arrives through a per-platform optional dependency for the
+targets DeckProbe releases: macOS arm64/x64, Linux arm64/x64 (glibc and musl),
+and Windows x64.
+
+If installation skipped optional dependencies, `deckprobe` reports which
+platform package is missing. Install it directly, or build from source with
+`cargo install --git https://github.com/deckflow/deckprobe --locked deckprobe`.
+
+## Node API
+
+The `node` export condition loads the WebAssembly binary from disk, so the
+package works under Node with no configuration:
+
+```ts
+import { probeFile } from "@deckflow/deckprobe";
+
+const report = await probeFile("deck.pptx", {
+  targets: ["@summary", "@security"],
+  level: "metadata",
+});
+```
+
+`probeFile()` reports `source_kind: "local_file"` and produces a report byte for
+byte identical to the native CLI on the same input. `probe()` accepts `Buffer`,
+`Uint8Array`, and `ArrayBuffer` alongside the browser input types, and reports
+`node_bytes`. `deckProbeWasmPath` exposes the absolute path of the binary being
+loaded.
+
+`probeFile()` reads the whole file into memory, because the WebAssembly engine
+takes bytes rather than a file handle. The `deckprobe` command reads lazily
+instead — for a 300 KB PPTX it touches under 18 KB — so prefer the CLI, or
+`--jsonl` for batches, when inputs are large.
 
 ## Public imports
 
@@ -14,7 +59,8 @@ npm install @deckflow/deckprobe
 |---|---|
 | Probe on the calling thread | `import { initDeckProbe, probe } from "@deckflow/deckprobe"` |
 | Discover supported formats, targets, schema, or runtime version | `import { formats, targets, schema, version } from "@deckflow/deckprobe"` |
-| Probe in a module Worker | `import { createDeckProbeWorker } from "@deckflow/deckprobe/worker"` |
+| Probe in a module Worker (browser only) | `import { createDeckProbeWorker } from "@deckflow/deckprobe/worker"` |
+| Probe a file on disk (Node only) | `import { probeFile } from "@deckflow/deckprobe"` |
 | Use TypeScript response and option types | `import type { ProbeResult, ProbeCallOptions } from "@deckflow/deckprobe"` |
 
 `probe()` lazily initializes the WASM runtime. Use `initDeckProbe()` during
@@ -68,6 +114,85 @@ new batch. `File` and `Blob` reads happen inside the Worker, while direct
 `probe()` intentionally runs input conversion and parsing on the calling
 thread.
 
+## Bundlers
+
+The package ships a WebAssembly binary next to its JavaScript wrapper and
+resolves it relative to that wrapper. Any tool that moves the wrapper without
+moving the binary breaks initialization.
+
+### Vite
+
+Vite's dependency pre-bundling rewrites `@deckflow/deckprobe` into
+`node_modules/.vite/deps/` and does not copy the adjacent `.wasm` file, so the
+dev server requests a binary that is not there. **Every Vite version is
+affected in dev; `vite build` is not affected** — a production build resolves
+and emits the binary correctly. That asymmetry is the clearest way to recognize
+the problem.
+
+The reported error depends on how the dev server answers the missing path:
+
+| Vite | Error |
+|---|---|
+| 4.x | `TypeError: Failed to execute 'compile' on 'WebAssembly': HTTP status code is not ok` |
+| 5.x, 6.x, 7.x | `CompileError: WebAssembly.instantiate(): expected magic word 00 61 73 6d, found 3c 21 64 6f` |
+
+On Vite 5 and newer the SPA fallback answers with `index.html`, so the request
+succeeds and WebAssembly rejects the HTML body instead — `3c 21 64 6f` is
+`<!do`. The Worker entry point fails the same way and surfaces it as
+`DeckProbe worker failed to load`.
+
+**Exclude the package from dependency pre-bundling.** This is the recommended
+fix, and the only one that covers the Worker entry point:
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ["@deckflow/deckprobe"],
+  },
+});
+```
+
+Excluding the package name also covers the `/worker` subpath; it does not need
+its own entry.
+
+**If you only use the main-thread entry point**, passing the binary URL works
+without touching the Vite configuration:
+
+```ts
+import { initDeckProbe, probe } from "@deckflow/deckprobe";
+import wasmUrl from "@deckflow/deckprobe/wasm?url";
+
+await initDeckProbe(wasmUrl);
+```
+
+`?url` is Vite's asset syntax; add `/// <reference types="vite/client" />` so
+TypeScript types the import. Call `initDeckProbe(wasmUrl)` before the first
+`probe()` or discovery call, because the first initialization wins.
+
+This form does not help `createDeckProbeWorker()`. The Worker runs its own
+module instance, so a URL passed on the main thread never reaches it, and
+pre-bundling relocates `worker-runtime.js` itself. Use `optimizeDeps.exclude`
+whenever the Worker entry point is in play.
+
+### Other bundlers
+
+`@deckflow/deckprobe/wasm` is the stable path to the binary and accepts the
+same treatment elsewhere: bundlers that understand `new URL(..., import.meta.url)`
+(webpack 5, Rollup, esbuild) need no configuration, and anything else can load
+the binary itself and hand it to `initDeckProbe()`:
+
+```ts
+await initDeckProbe(await fetch("/assets/deckprobe_wasm_bg.wasm"));
+```
+
+`initDeckProbe()` accepts a URL or path, a `Request` or `Response`, raw bytes,
+or a compiled `WebAssembly.Module` (`InitInput`). Use the `Response` or bytes
+form when a CDN origin, a sub-path deployment, or a strict CSP makes the
+default relative URL wrong.
+
 `Uint8Array`, `ArrayBuffer`, and `Blob` inputs require `options.name` with a
 filename extension. `File` inputs use `File.name` automatically. Successful and
 partial probes return the same schema-v2 report as the native CLI; recognized
@@ -108,7 +233,16 @@ npm test
 `npm run build` regenerates the Rust WASM package and then compiles the
 TypeScript wrapper, so it requires `cargo`, the `wasm32-unknown-unknown` target,
 and the local `wasm-pack` dependency. The generated files under `wasm/` are
-build artifacts and are intentionally ignored by Git.
+build artifacts and are intentionally ignored by Git. Rebuild them after a
+version bump: the smoke tests assert that the compiled runtime reports the same
+version as `package.json`.
+
+`npm test` runs the type check, the version and artifact checks, and three
+browser suites. `npm run test:vite` is the bundler guard: it packs the real
+tarball, installs it into a throwaway Vite consumer, and asserts that both
+documented Vite fixes and a production build still reach the WASM binary. It
+drives Vite through this package's own dependency, so it needs Node
+`^20.19.0 || >=22.12.0` — the range Vite 7 requires.
 
 The package is published independently as `@deckflow/deckprobe` while its Rust
 binding remains part of the main DeckProbe Cargo workspace.

@@ -7,6 +7,8 @@ import initWasm, {
   type InitInput,
 } from "../wasm/deckprobe_wasm.js";
 
+import { defaultSourceKind, defaultWasmSource } from "./runtime.js";
+
 import type {
   FormatsReport,
   ProbeCallOptions,
@@ -18,16 +20,32 @@ import type {
 
 export type * from "./types.js";
 
+/**
+ * Accepted argument for {@link initDeckProbe}: a URL or path, a `Request` or
+ * `Response`, raw bytes, or an already compiled `WebAssembly.Module`.
+ */
+export type { InitInput };
+
 let initialization: Promise<unknown> | undefined;
 
 function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-/** Initialize the WASM module once. Calling probe or discovery does this lazily. */
+/**
+ * Initialize the WASM module once. Calling probe or discovery does this lazily,
+ * resolving the binary relative to the installed package.
+ *
+ * Pass `moduleOrPath` to control where the binary comes from — required when a
+ * bundler relocates the wrapper away from its `.wasm` file, or when serving the
+ * binary from a CDN, a sub-path deployment, or behind a strict CSP. Because the
+ * first call wins, an explicit argument only takes effect when this runs before
+ * any `probe()` or discovery call; later arguments are ignored.
+ */
 export function initDeckProbe(moduleOrPath?: InitInput): Promise<unknown> {
+  const source = moduleOrPath ?? defaultWasmSource();
   initialization ??= initWasm(
-    moduleOrPath === undefined ? undefined : { module_or_path: moduleOrPath },
+    source === undefined ? undefined : { module_or_path: source },
   ).catch((error: unknown) => {
     initialization = undefined;
     throw normalizeError(error);
@@ -36,7 +54,7 @@ export function initDeckProbe(moduleOrPath?: InitInput): Promise<unknown> {
 }
 
 function engineOptions(options: ProbeCallOptions): ProbeOptions {
-  const { name: _name, ...request } = options;
+  const { name: _name, sourceKind: _sourceKind, ...request } = options;
   return request;
 }
 
@@ -75,6 +93,7 @@ export async function probe(
       inputName(input, options.name),
       bytes,
       engineOptions(options),
+      options.sourceKind ?? defaultSourceKind(),
     ) as ProbeResult;
   } catch (error) {
     throw normalizeError(error);

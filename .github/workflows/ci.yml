@@ -29,7 +29,7 @@ jobs:
         run: cargo test --workspace
 
   js-package:
-    name: Browser SDK package
+    name: npm package (CLI and browser SDK)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -38,7 +38,8 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # The Vite consumer smoke test drives Vite 7, which needs >= 20.19.
+          node-version: 20.19
           cache: npm
           cache-dependency-path: packages/deckprobe-js/package-lock.json
       - name: Install JavaScript dependencies
@@ -47,10 +48,12 @@ jobs:
       - name: Build WASM and TypeScript package
         working-directory: packages/deckprobe-js
         run: npm run build
+      - name: Build the native CLI the launcher wraps
+        run: cargo build --locked --release -p deckprobe
       - name: Install Chromium
         working-directory: packages/deckprobe-js
         run: npx playwright install --with-deps chromium
-      - name: Run Browser SDK contract tests
+      - name: Run contract, bundler, and CLI parity tests
         working-directory: packages/deckprobe-js
         run: npm test
       - name: Audit JavaScript dependencies

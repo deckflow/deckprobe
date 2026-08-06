@@ -34,8 +34,15 @@ export interface ProbeOptions {
 export interface ProbeCallOptions extends ProbeOptions {
   /** Required for bytes and Blob inputs; File inputs use File.name by default. */
   name?: string;
+  /**
+   * Value reported as `input.source_kind`. Defaults to `browser_bytes` in the
+   * browser and `node_bytes` under Node; `probeFile()` reports `local_file`.
+   * Set it when bytes reached you some other way and the report should say so.
+   */
+  sourceKind?: string;
 }
 
+/** Node's `Buffer` is a `Uint8Array`, so it is accepted wherever bytes are. */
 export type ProbeInput = File | Blob | ArrayBuffer | Uint8Array;
 
 export interface Evidence {
