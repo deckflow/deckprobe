@@ -386,7 +386,9 @@ jobs:
         working-directory: packages/deckprobe-js
         run: |
           npm run build
-          npm test
+          # Node/CLI parity depends on private fixtures enforced by the
+          # promotion gate; the public repository intentionally excludes them.
+          npm run test:public
           npm audit --audit-level=high
           npm pack --dry-run --json
       - name: Verify tag and package versions
@@ -410,7 +412,23 @@ jobs:
           if [[ "$package_version" == *-* ]]; then
             publish_tag=next
           fi
-          npm publish --access public --provenance --tag "$publish_tag"
+          # Publish the exact archive whose contents passed the pack gate. This
+          # prevents a source-only package from being accepted when dist/ or
+          # wasm/ was absent from the working tree.
+          rm -f ./*.tgz
+          npm pack --silent
+          tarball="deckflow-deckprobe-${package_version}.tgz"
+          for required in \
+            package/dist/index.js \
+            package/dist/index.node.js \
+            package/wasm/deckprobe_wasm.js \
+            package/wasm/deckprobe_wasm_bg.wasm; do
+            if ! tar -tzf "$tarball" | grep -Fxq "$required"; then
+              echo "$tarball is missing $required" >&2
+              exit 1
+            fi
+          done
+          npm publish "$tarball" --access public --provenance --tag "$publish_tag"
 
   announce:
     needs:

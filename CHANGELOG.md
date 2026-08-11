@@ -4,6 +4,14 @@ All notable changes to DeckProbe are documented here.
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-08-11
+
+### Fixed
+
+- Publish a complete `@deckflow/deckprobe` tarball containing the compiled
+  `dist/` JavaScript and `wasm/` runtime artifacts. The release gate now rejects
+  an npm package when any required build artifact is absent.
+
 ## [2.3.0] - 2026-08-06
 
 ### Added
