@@ -418,12 +418,16 @@ jobs:
           rm -f ./*.tgz
           npm pack --silent
           tarball="deckflow-deckprobe-${package_version}.tgz"
+          # List once into a variable. Piping tar into `grep -q` makes grep exit
+          # on the first match, GNU tar then dies on EPIPE, and `pipefail` turns
+          # that into a false "missing" verdict for a file that is present.
+          tarball_contents="$(tar -tzf "$tarball")"
           for required in \
             package/dist/index.js \
             package/dist/index.node.js \
             package/wasm/deckprobe_wasm.js \
             package/wasm/deckprobe_wasm_bg.wasm; do
-            if ! tar -tzf "$tarball" | grep -Fxq "$required"; then
+            if ! grep -Fxq "$required" <<<"$tarball_contents"; then
               echo "$tarball is missing $required" >&2
               exit 1
             fi
