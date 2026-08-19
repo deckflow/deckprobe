@@ -506,15 +506,27 @@ mod embedded_skill {
             .1
     }
 
+    /// The manifest with LF endings.
+    ///
+    /// Git checks the repository out with CRLF on Windows, so the frontmatter
+    /// parsing below must not assume the separator it happens to see on Unix.
+    fn skill_manifest_lf() -> String {
+        skill_manifest().replace("\r\n", "\n")
+    }
+
+    /// The frontmatter block, between the opening and closing fences.
+    fn frontmatter(manifest: &str) -> &str {
+        manifest
+            .strip_prefix("---\n")
+            .expect("SKILL.md opens with a frontmatter fence")
+            .split_once("\n---\n")
+            .expect("SKILL.md closes its frontmatter fence")
+            .0
+    }
+
     /// Top-level frontmatter keys, without pulling in a YAML dependency.
     fn frontmatter_keys(manifest: &str) -> Vec<String> {
-        let body = manifest
-            .strip_prefix("---\n")
-            .expect("SKILL.md opens with a frontmatter fence");
-        let (frontmatter, _) = body
-            .split_once("\n---\n")
-            .expect("SKILL.md closes its frontmatter fence");
-        frontmatter
+        frontmatter(manifest)
             .lines()
             .filter(|line| !line.starts_with(char::is_whitespace) && !line.trim().is_empty())
             .filter_map(|line| line.split_once(':'))
@@ -540,7 +552,7 @@ mod embedded_skill {
 
     #[test]
     fn skill_frontmatter_uses_only_agent_skills_spec_fields() {
-        let keys = frontmatter_keys(skill_manifest());
+        let keys = frontmatter_keys(&skill_manifest_lf());
         for key in &keys {
             assert!(
                 SPEC_FRONTMATTER_FIELDS.contains(&key.as_str()),
@@ -554,7 +566,7 @@ mod embedded_skill {
 
     #[test]
     fn skill_declares_its_name_and_stays_within_the_listing_budget() {
-        let manifest = skill_manifest();
+        let manifest = skill_manifest_lf();
         assert!(
             manifest.contains(&format!("name: {SKILL_NAME}")),
             "SKILL.md must declare name: {SKILL_NAME}"
@@ -565,12 +577,7 @@ mod embedded_skill {
              upgrade can replace an installed copy without --force"
         );
 
-        let frontmatter = manifest
-            .strip_prefix("---\n")
-            .and_then(|body| body.split_once("\n---\n"))
-            .expect("SKILL.md has frontmatter")
-            .0;
-        let description = frontmatter
+        let description = frontmatter(&manifest)
             .split_once("description:")
             .expect("SKILL.md declares a description")
             .1;
