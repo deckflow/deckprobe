@@ -4,6 +4,29 @@ All notable changes to DeckProbe are documented here.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-08-19
+
+### Added
+
+- DeckProbe ships an Agent Skill at `skills/deckprobe/`, teaching coding agents
+  the target vocabulary, the report contract, and exit-status handling, with
+  progressive-disclosure references for targets, recipes, output, and limits.
+- New `deckprobe install` subcommand writes support files into conventional local
+  directories and reports one JSON receipt. `--skills` (the default artifact set)
+  installs the agent skill for `--agent`-selected agents or an explicit `--dir`;
+  `--man` and `--completions` install the generated manual pages and shell
+  completion source. Every artifact shares the same idempotent
+  created/updated/unchanged policy, `--force` gate, and `--dry-run`.
+- `.claude-plugin/` manifests publish the repository as a single-plugin Claude
+  Code marketplace, so `/plugin marketplace add deckflow/deckprobe` works
+  alongside `npx skills add deckflow/deckprobe`. All three install routes deliver
+  identical bytes, verified by a contract test.
+
+### Changed
+
+- The subcommand section of `deckprobe --help` is now headed `Commands` rather
+  than `Discovery commands`, because `install` is not a discovery command.
+
 ## [2.3.1] - 2026-08-11
 
 ### Fixed

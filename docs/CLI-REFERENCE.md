@@ -22,6 +22,7 @@ deckprobe targets --help
 deckprobe generate --help
 deckprobe schema --help
 deckprobe completion --help
+deckprobe install --help
 ```
 
 ## Quick examples
@@ -318,6 +319,106 @@ deckprobe --pretty formats
 deckprobe formats --pretty
 ```
 
+## Installing agent assets
+
+`deckprobe install` writes support files into a local directory. Where `generate man` and
+`completion` emit to standard output, `install` resolves a conventional destination and applies one
+policy to everything it writes: an idempotent created/updated/unchanged comparison, a `--force` gate,
+`--dry-run`, and a single JSON receipt.
+
+```bash
+deckprobe install                                     # the default artifact set: the agent skill
+deckprobe install --skills --dry-run --pretty         # preview, writing nothing
+deckprobe install --skills --agent claude --global    # ~/.claude/skills/deckprobe/
+deckprobe install --skills --dir ./.claude/skills     # explicit skills container
+deckprobe install --man --global
+deckprobe install --completions zsh --dir ~/.zfunc
+```
+
+Selectors combine, and each resolves its own destination, so `--skills --man` installs both in one
+run. With no selector at all, the default set is installed, which today is `--skills`.
+
+| Selector | Default destination | With `--dir D` |
+| --- | --- | --- |
+| `--skills` | the skills directory for each resolved `--agent` | `D` is the skills container; the skill lands in `D/deckprobe/` |
+| `--man` | `./man`, or `$XDG_DATA_HOME/man/man1` (else `~/.local/share/man/man1`) with `--global` | files land directly in `D` |
+| `--completions SHELL` | none — `--dir` is required, because user completion directories are not standardized | files land directly in `D` |
+
+### Agents
+
+`--agent` is repeatable and comma-separated. `--dir` bypasses it entirely and conflicts with both
+`--agent` and `--global`.
+
+| Agent | Project | User (`--global`) |
+| --- | --- | --- |
+| `claude` (alias `claude-code`) | `.claude/skills` | `~/.claude/skills` |
+| `codex` (alias `codex-cli`) | `.agents/skills` | `~/.codex/skills` |
+| `cursor` | `.agents/skills` | `~/.cursor/skills` |
+| `opencode` | `.agents/skills` | `~/.config/opencode/skills` |
+| `gemini` (alias `gemini-cli`) | `.agents/skills` | `~/.gemini/skills` |
+| `copilot` (alias `github-copilot`) | `.agents/skills` | `~/.copilot/skills` |
+| `windsurf` | `.windsurf/skills` | `~/.codeium/windsurf/skills` |
+| `cline`, `zed`, `agents` (alias `universal`) | `.agents/skills` | `~/.agents/skills` |
+
+`auto` is the default: it selects every agent whose directory already exists at the chosen scope and
+falls back to the vendor-neutral `agents` layout when none does. `all` selects every row. Several
+agents share `.agents/skills`, so destinations are deduplicated and the receipt lists every agent
+served by each one.
+
+DeckProbe deliberately does not track the full ecosystem of agent directories. For anything outside
+this table, use `--dir`, or install through the skills CLI, which maintains a much larger table:
+
+```bash
+npx skills add deckflow/deckprobe -a <agent>
+```
+
+### Receipt and overwrite policy
+
+```json
+{
+  "schema_version": 2,
+  "tool_version": "2.3.1",
+  "status": "ok",
+  "install": {
+    "artifacts": ["skills"],
+    "scope": "project",
+    "dry_run": false,
+    "force": false,
+    "targets": [
+      {
+        "artifact": "skills",
+        "name": "deckprobe",
+        "agents": ["claude"],
+        "directory": "./.claude/skills/deckprobe",
+        "files": [{ "path": "SKILL.md", "bytes": 9069, "action": "created" }],
+        "orphaned": []
+      }
+    ]
+  }
+}
+```
+
+- A file whose contents already match is reported `unchanged` and is not rewritten, so re-running
+  `install` is a safe no-op.
+- A skill directory DeckProbe previously wrote is recognized by a marker in its `SKILL.md` and is
+  refreshed in place, so upgrading needs no `--force`.
+- A `SKILL.md` without that marker belongs to somebody else. The command fails with exit `1` and
+  writes nothing at all — including for other agents in the same run — until `--force` is given.
+- `orphaned` lists files in the destination that this version no longer ships. They are reported,
+  never deleted.
+- `--dry-run` performs the same validation and produces the same receipt without writing.
+
+Every destination is resolved and validated before anything is written, so a rejected run leaves no
+half-installed tree behind -- across artifacts as well as across agents.
+
+Exit statuses follow the table below: `1` for a refused overwrite, a missing `--dir` for
+`--completions`, or an unresolvable home directory; `2` for a contradictory flag combination or a
+write failure.
+
+The skill this installs is the same content published at `github.com/deckflow/deckprobe`, so
+`npx skills add deckflow/deckprobe` and `/plugin marketplace add deckflow/deckprobe` deliver
+identical bytes.
+
 ## Exit status
 
 | Status | Meaning |
@@ -366,5 +467,8 @@ man -M ./man deckprobe-targets
 
 The generator creates its output directory when needed and writes
 `deckprobe.1`, `deckprobe-formats.1`, `deckprobe-targets.1`,
-`deckprobe-generate.1`, `deckprobe-schema.1`, and
-`deckprobe-completion.1`.
+`deckprobe-generate.1`, `deckprobe-schema.1`, `deckprobe-completion.1`, and
+`deckprobe-install.1`.
+
+`deckprobe install --man` writes the same set into a conventional location and reports the result as
+JSON. See [Installing agent assets](#installing-agent-assets).

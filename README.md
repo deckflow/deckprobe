@@ -10,7 +10,7 @@ Ask for the facts you need. Get structured JSON with confidence, evidence, and m
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f80ed.svg)](LICENSE)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
-[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
+[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Agent skill](#use-from-a-coding-agent) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
 
 </div>
 
@@ -170,6 +170,41 @@ printf '%s\n' \
   '{"path":"report.pdf"}' \
   '{"path":"deck.pptx"}' | deckprobe --jsonl -t @summary
 ```
+
+## Use from a coding agent
+
+DeckProbe ships an [Agent Skill](https://agentskills.io) that teaches an agent the
+target vocabulary, the report contract, and the exit-status handling, so it stops
+guessing flags and stops falling back to unzipping documents by hand.
+
+If you already have the CLI, install the skill for whichever agents this project
+uses:
+
+```sh
+deckprobe install --skills                     # every agent present in this project
+deckprobe install --skills --agent claude -g   # ~/.claude/skills/deckprobe/
+deckprobe install --skills --dry-run --pretty  # preview first
+```
+
+If you do not, install it straight from this repository:
+
+```sh
+npx skills add deckflow/deckprobe
+```
+
+Claude Code users can instead take it as a plugin:
+
+```
+/plugin marketplace add deckflow/deckprobe
+/plugin install deckprobe@deckflow
+```
+
+All three deliver the same bytes from [`skills/deckprobe/`](skills/deckprobe/).
+Note that `npx skills add` and the plugin install the instructions only — the
+skill's first step checks for the CLI and falls back to `npx -y @deckflow/deckprobe`
+when it is missing. See
+[Installing agent assets](docs/CLI-REFERENCE.md#installing-agent-assets) for the
+agent/directory table and the overwrite policy.
 
 ## JavaScript package
 

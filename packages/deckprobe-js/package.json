@@ -1,6 +1,6 @@
 {
   "name": "@deckflow/deckprobe",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "CLI and browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe",
   "type": "module",
   "license": "MIT",
@@ -61,13 +61,13 @@
     "prepublishOnly": "npm run build && npm test"
   },
   "optionalDependencies": {
-    "@deckflow/deckprobe-darwin-arm64": "2.3.1",
-    "@deckflow/deckprobe-darwin-x64": "2.3.1",
-    "@deckflow/deckprobe-linux-arm64-gnu": "2.3.1",
-    "@deckflow/deckprobe-linux-arm64-musl": "2.3.1",
-    "@deckflow/deckprobe-linux-x64-gnu": "2.3.1",
-    "@deckflow/deckprobe-linux-x64-musl": "2.3.1",
-    "@deckflow/deckprobe-win32-x64-msvc": "2.3.1"
+    "@deckflow/deckprobe-darwin-arm64": "2.4.0",
+    "@deckflow/deckprobe-darwin-x64": "2.4.0",
+    "@deckflow/deckprobe-linux-arm64-gnu": "2.4.0",
+    "@deckflow/deckprobe-linux-arm64-musl": "2.4.0",
+    "@deckflow/deckprobe-linux-x64-gnu": "2.4.0",
+    "@deckflow/deckprobe-linux-x64-musl": "2.4.0",
+    "@deckflow/deckprobe-win32-x64-msvc": "2.4.0"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

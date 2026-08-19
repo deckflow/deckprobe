@@ -16,6 +16,8 @@ use deckprobe_engine::{
 };
 use serde::{Deserialize, Serialize};
 
+mod install;
+
 #[derive(Debug, Parser)]
 #[command(
     name = "deckprobe",
@@ -23,10 +25,10 @@ use serde::{Deserialize, Serialize};
     about = "Inspect PDF, Microsoft Office, and Apple iWork documents with bounded probes",
     long_about = "Inspect PDF, Microsoft Office, and modern Apple iWork documents with bounded, target-driven probes.\n\nDeckProbe 2.2 sends local files, stdin bytes, and JSONL inputs through the same source-independent engine. It routes by the supplied filename extension, verifies that the container and internal document type agree, reads only the paths needed for the requested targets, and writes schema-v2 JSON reports to standard output.",
     override_usage = "deckprobe [OPTIONS] <INPUT>\n       deckprobe --jsonl [OPTIONS]\n       deckprobe <COMMAND> [OPTIONS]",
-    subcommand_help_heading = "Discovery commands",
+    subcommand_help_heading = "Commands",
     subcommand_value_name = "COMMAND",
     after_help = "Run 'deckprobe --help' for examples and exit-status details.",
-    after_long_help = "EXAMPLES:\n  Inspect a local document:\n    deckprobe report.pdf\n\n  Probe raw stdin bytes using a logical filename for format routing:\n    cat report.pdf | deckprobe -n report.pdf -\n\n  Probe one path or base64 payload per JSONL record:\n    printf '%s\\n' '{\"path\":\"report.pdf\"}' | deckprobe --jsonl\n\n  Request several targets with short aliases and compact output:\n    deckprobe -t title,page_count --view values report.pdf\n\n  Combine target presets in one probe:\n    deckprobe -l m -t @summary,@security -p deck.pptx\n\n  Discover supported formats or targets:\n    deckprobe formats --pretty\n    deckprobe targets pdf --pretty\n\n  Generate a man page from this command model:\n    deckprobe generate man > deckprobe.1\n    deckprobe generate man -d ./man\n\nEXIT STATUS:\n  0  Success (including unresolved targets unless --strict is used)\n  1  Invalid request or unsupported target\n  2  Command-line syntax error or source I/O error\n  3  Unsupported or unrecognized input format\n  4  Malformed input or probe budget exceeded\n  5  Unresolved requested target with --strict\n  6  Internal parser or report-serialization failure"
+    after_long_help = "EXAMPLES:\n  Inspect a local document:\n    deckprobe report.pdf\n\n  Probe raw stdin bytes using a logical filename for format routing:\n    cat report.pdf | deckprobe -n report.pdf -\n\n  Probe one path or base64 payload per JSONL record:\n    printf '%s\\n' '{\"path\":\"report.pdf\"}' | deckprobe --jsonl\n\n  Request several targets with short aliases and compact output:\n    deckprobe -t title,page_count --view values report.pdf\n\n  Combine target presets in one probe:\n    deckprobe -l m -t @summary,@security -p deck.pptx\n\n  Discover supported formats or targets:\n    deckprobe formats --pretty\n    deckprobe targets pdf --pretty\n\n  Install the agent skill for your coding agent:\n    deckprobe install --skills\n    deckprobe install --skills --agent claude --global\n\n  Generate a man page from this command model:\n    deckprobe generate man > deckprobe.1\n    deckprobe generate man -d ./man\n\nEXIT STATUS:\n  0  Success (including unresolved targets unless --strict is used)\n  1  Invalid request or unsupported target\n  2  Command-line syntax error or source I/O error\n  3  Unsupported or unrecognized input format\n  4  Malformed input or probe budget exceeded\n  5  Unresolved requested target with --strict\n  6  Internal parser or report-serialization failure"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -270,6 +272,53 @@ enum Command {
         #[arg(value_enum)]
         shell: clap_complete::Shell,
     },
+    /// Install DeckProbe support files for coding agents, shells, and man(1).
+    #[command(
+        long_about = "Install DeckProbe support files into an agent, shell, or documentation directory.\n\nWith no artifact flag the default set is installed, which today is --skills. Every run writes one JSON receipt to standard output naming the resolved directories and what happened to each file. Re-running is safe: a file whose contents already match is reported as unchanged and is not rewritten.\n\nThe agent skill is the same content published at github.com/deckflow/deckprobe, so 'npx skills add deckflow/deckprobe' installs identical bytes for agents this command does not cover.",
+        after_long_help = "EXAMPLES:\n  Install the agent skill for every agent already present in this project:\n    deckprobe install\n\n  Preview without writing anything:\n    deckprobe install --skills --dry-run --pretty\n\n  Install for one agent, personal scope:\n    deckprobe install --skills --agent claude --global\n\n  Install into an explicit skills directory:\n    deckprobe install --skills --dir ./.claude/skills\n\n  Install man pages and one shell's completions:\n    deckprobe install --man --global\n    deckprobe install --completions zsh --dir ~/.zfunc"
+    )]
+    Install {
+        /// Install the deckprobe agent skill. Selected by default.
+        #[arg(long)]
+        skills: bool,
+
+        /// Install the generated manual pages.
+        #[arg(long)]
+        man: bool,
+
+        /// Install shell completion source for SHELL.
+        #[arg(long, value_enum, value_name = "SHELL")]
+        completions: Option<clap_complete::Shell>,
+
+        /// Agent whose skills directory receives the skill. Repeatable and comma-separated.
+        #[arg(
+            short = 'a',
+            long,
+            value_enum,
+            value_delimiter = ',',
+            action = clap::ArgAction::Append,
+            value_name = "AGENT",
+            conflicts_with = "dir",
+            long_help = "Agent whose skills directory receives the skill. Repeatable and comma-separated.\n\n'auto' (the default) selects every agent whose directory already exists at the chosen scope and falls back to the vendor-neutral 'agents' layout when none does. 'all' selects every agent. The resolved list always appears in the JSON receipt, and --dry-run previews it.\n\nAgents outside this list are served by --dir, or by 'npx skills add deckflow/deckprobe -a <agent>'."
+        )]
+        agent: Vec<install::AgentTarget>,
+
+        /// Install for the current user instead of the current project.
+        #[arg(short = 'g', long, conflicts_with = "dir")]
+        global: bool,
+
+        /// Explicit destination directory. The skill is written to <DIRECTORY>/deckprobe/.
+        #[arg(short = 'd', long, value_name = "DIRECTORY")]
+        dir: Option<PathBuf>,
+
+        /// Replace a skill directory DeckProbe does not recognize as its own.
+        #[arg(long)]
+        force: bool,
+
+        /// Report what would be written without writing anything.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -345,6 +394,31 @@ fn run(cli: Cli) -> deckprobe_core::Result<u8> {
         Some(Command::Completion { shell }) => {
             let mut command = Cli::command();
             clap_complete::generate(*shell, &mut command, "deckprobe", &mut std::io::stdout());
+            return Ok(0);
+        }
+        Some(Command::Install {
+            skills,
+            man,
+            completions,
+            agent,
+            global,
+            dir,
+            force,
+            dry_run,
+        }) => {
+            let request = install::InstallRequest {
+                // No artifact flag selects the default set, which today is the skill.
+                skills: *skills || (!*man && completions.is_none()),
+                man: *man,
+                completions: *completions,
+                agents: agent.as_slice(),
+                global: *global,
+                dir: dir.as_deref(),
+                force: *force,
+                dry_run: *dry_run,
+            };
+            let receipt = install::install(&request, render_man_pages, completion_script)?;
+            write_json(&receipt, cli.pretty)?;
             return Ok(0);
         }
         None => {}
@@ -644,6 +718,45 @@ fn generate_man_page_tree(command: clap::Command, output_dir: &Path) -> deckprob
     let (filename, page) = render_man_page(command)?;
     std::fs::write(output_dir.join(filename), page)?;
     Ok(())
+}
+
+/// The same man-page tree `generate man -d` writes, as an in-memory payload for
+/// `install --man`.
+fn render_man_pages() -> deckprobe_core::Result<Vec<install::PlannedFile>> {
+    let mut command = Cli::command().disable_help_subcommand(true);
+    command.build();
+    let mut pages = Vec::new();
+    collect_man_pages(command, &mut pages)?;
+    Ok(pages)
+}
+
+fn collect_man_pages(
+    command: clap::Command,
+    pages: &mut Vec<install::PlannedFile>,
+) -> deckprobe_core::Result<()> {
+    for subcommand in command
+        .get_subcommands()
+        .filter(|subcommand| !subcommand.is_hide_set())
+        .cloned()
+    {
+        collect_man_pages(subcommand, pages)?;
+    }
+    let (path, contents) = render_man_page(command)?;
+    pages.push(install::PlannedFile { path, contents });
+    Ok(())
+}
+
+/// The same source `completion <shell>` writes to stdout, as an installable file.
+fn completion_script(shell: clap_complete::Shell) -> install::PlannedFile {
+    use clap_complete::Generator as _;
+
+    let mut command = Cli::command();
+    let mut contents = Vec::new();
+    clap_complete::generate(shell, &mut command, "deckprobe", &mut contents);
+    install::PlannedFile {
+        path: shell.file_name("deckprobe"),
+        contents,
+    }
 }
 
 fn render_man_page(command: clap::Command) -> deckprobe_core::Result<(String, Vec<u8>)> {

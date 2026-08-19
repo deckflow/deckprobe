@@ -1,0 +1,19 @@
+{
+  "name": "deckflow",
+  "owner": {
+    "name": "DeckFlow",
+    "url": "https://github.com/deckflow"
+  },
+  "description": "DeckProbe document-inspection tooling",
+  "plugins": [
+    {
+      "name": "deckprobe",
+      "source": "./",
+      "description": "Inspect PDF, Microsoft Office, and Apple iWork documents with bounded, deterministic probes.",
+      "homepage": "https://github.com/deckflow/deckprobe",
+      "repository": "https://github.com/deckflow/deckprobe",
+      "license": "MIT",
+      "keywords": ["pdf", "office", "iwork", "metadata", "document-inspection"]
+    }
+  ]
+}

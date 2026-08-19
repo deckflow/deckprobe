@@ -60,6 +60,13 @@ try {
     "the browser entry point is missing from the tarball",
   );
 
+  assert.ok(
+    existsSync(fixtures),
+    `missing ${fixtures}. These fixtures are private and are not published to the ` +
+      `open-source tree, so this suite cannot run there. Use "npm run test:public", ` +
+      `which omits the fixture-dependent suites.`,
+  );
+
   const documents = readdirSync(fixtures).filter((name) => !name.startsWith("."));
   assert.ok(documents.length > 0, "no fixtures found");
 

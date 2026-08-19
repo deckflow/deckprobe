@@ -53,9 +53,13 @@ jobs:
       - name: Install Chromium
         working-directory: packages/deckprobe-js
         run: npx playwright install --with-deps chromium
+      # test:public omits test:node and test:cli, which read tests/fixtures/local.
+      # That tree is private and promote-release.sh removes it from this
+      # repository, so `npm test` can never pass here. Both suites still run
+      # against the development tree, where the fixtures exist.
       - name: Run contract, bundler, and CLI parity tests
         working-directory: packages/deckprobe-js
-        run: npm test
+        run: npm run test:public
       - name: Audit JavaScript dependencies
         working-directory: packages/deckprobe-js
         run: npm audit --audit-level=high

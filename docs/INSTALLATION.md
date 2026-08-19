@@ -111,6 +111,38 @@ The locally built executable is not project-signed. At runtime it only needs
 execute permission and read access to the input document; it writes reports to
 standard output and does not need root privileges.
 
+## Install the agent skill
+
+DeckProbe ships an [Agent Skill](https://agentskills.io) that teaches a coding
+agent how to drive the CLI. Three routes install identical content from
+`skills/deckprobe/`:
+
+```sh
+deckprobe install --skills                  # needs the CLI; covers agents in this project
+npx skills add deckflow/deckprobe           # no CLI needed; covers many more agents
+```
+
+Claude Code can also take it as a plugin, with `/plugin marketplace add
+deckflow/deckprobe` followed by `/plugin install deckprobe@deckflow`.
+
+`deckprobe install --skills` writes to the project by default and to the user
+directory with `--global`. Both `--agent` and `--dir` choose the destination
+explicitly; `deckprobe install --help` lists the supported agents, and
+[the CLI reference](CLI-REFERENCE.md#installing-agent-assets) has the full
+directory table.
+
+Re-running the command upgrades a skill DeckProbe previously wrote; it refuses to
+replace a `SKILL.md` it did not write unless you pass `--force`. Remove an
+installed copy by deleting its directory, for example:
+
+```sh
+rm -rf .claude/skills/deckprobe
+```
+
+The skills CLI and the plugin install the instructions only, not the binary. The
+skill's first step checks for `deckprobe` and falls back to
+`npx -y @deckflow/deckprobe` when it is absent.
+
 ## Upgrade, custom location, and uninstall
 
 Run the same installer command again to upgrade. To install under a specific

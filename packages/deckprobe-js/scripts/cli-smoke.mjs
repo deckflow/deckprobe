@@ -39,6 +39,12 @@ assert.ok(
   existsSync(nativeBinary),
   `missing ${nativeBinary}. Run: cargo build --locked --release -p deckprobe`,
 );
+assert.ok(
+  existsSync(fixtures),
+  `missing ${fixtures}. These fixtures are private and are not published to the ` +
+    `open-source tree, so this suite cannot run there. Use "npm run test:public", ` +
+    `which omits the fixture-dependent suites.`,
+);
 
 const workspace = mkdtempSync(join(tmpdir(), "deckprobe-cli-"));
 const modules = join(workspace, "node_modules", "@deckflow");
@@ -224,6 +230,7 @@ try {
     ["generate", "--help"],
     ["schema", "--help"],
     ["completion", "--help"],
+    ["install", "--help"],
     ["help"],
   ];
   for (const args of helpArgs) {
@@ -232,7 +239,7 @@ try {
   // Guard against a launcher that "passes" by producing empty output.
   const help = runLauncher(launcher, ["--help"]).stdout.toString();
   assert.match(help, /Usage: deckprobe/, "--help did not render the usage block");
-  assert.match(help, /Discovery commands:/, "--help did not render the subcommand section");
+  assert.match(help, /Commands:/, "--help did not render the subcommand section");
 
   // Discovery and probe output across every fixture format.
   const documents = readdirSync(fixtures).filter((entry) => !entry.startsWith("."));
@@ -251,6 +258,27 @@ try {
   for (const args of [["formats"], ["schema"], ["targets", "pdf"], ["targets", "pptx", "--pretty"]]) {
     if (parity(launcher, `discovery parity ${args.join(" ")}`, args)) checks += 1;
   }
+
+  // The agent skill is embedded in the binary, so `npx @deckflow/deckprobe
+  // install --skills` works without the package shipping a second copy. Compare
+  // in --dry-run so the check cannot touch the developer's real skill
+  // directories, and with an explicit --dir so the result does not depend on
+  // which agents happen to be installed on the runner.
+  const skillDirectory = join(workspace, "skills");
+  for (const args of [
+    ["install", "--skills", "--dry-run", "--dir", skillDirectory],
+    ["install", "--dry-run", "--pretty", "--dir", skillDirectory],
+  ]) {
+    if (parity(launcher, `install parity ${args.join(" ")}`, args)) checks += 1;
+  }
+  const receipt = JSON.parse(
+    runLauncher(launcher, ["install", "--skills", "--dry-run", "--dir", skillDirectory]).stdout,
+  );
+  assert.equal(receipt.status, "ok", "install did not report success");
+  assert.ok(
+    receipt.install.targets[0].files.some((file) => file.path === "SKILL.md"),
+    "install did not plan a SKILL.md; the skill may not be embedded in this binary",
+  );
 
   // Exit codes must survive the extra process, including the CLI syntax path
   // that the launcher never sees the binary produce.
