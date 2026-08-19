@@ -122,6 +122,26 @@ export interface ProbeReport {
   diagnostics: Diagnostic[];
 }
 
+export interface ValuesReport {
+  schema_version: 2;
+  tool_version: string;
+  status: "ok" | "partial";
+  view: "values";
+  input: {
+    display_name: string;
+    source_kind: "browser_bytes";
+    file_size: number;
+  };
+  driver: {
+    id: string;
+    profile: string;
+  };
+  values: Record<string, unknown>;
+  unresolved_targets: string[];
+  piggyback_targets?: string[];
+  diagnostics: Diagnostic[];
+}
+
 export interface ErrorReport {
   schema_version: 2;
   tool_version: string;
@@ -133,7 +153,7 @@ export interface ErrorReport {
   };
 }
 
-export type ProbeResult = ProbeReport | ErrorReport;
+export type ProbeResult = ProbeReport | ValuesReport | ErrorReport;
 
 export interface FormatsReport {
   schema_version: 2;
