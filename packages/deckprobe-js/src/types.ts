@@ -46,6 +46,13 @@ export interface BudgetOverrides {
   timeoutMs?: number;
 }
 
+/**
+ * Options accepted by `probe()` and `probeFile()`.
+ *
+ * Note there is no `view` option. `--view values` is a CLI flag; the SDK always
+ * resolves the full evidence report, so a values report is never returned here.
+ * See {@link ValuesReport} if you are consuming CLI output instead.
+ */
 export interface ProbeOptions {
   targets?: string[];
   optionalTargets?: string[];
@@ -133,6 +140,40 @@ export interface ErrorReport {
   };
 }
 
+/**
+ * The compact envelope the **CLI** writes under `--view values`.
+ *
+ * This is deliberately not part of {@link ProbeResult}: the SDK has no `view`
+ * option, so `probe()` and `probeFile()` cannot return this shape, and putting
+ * it in the union would force every consumer to narrow against a variant that
+ * can never occur. It is exported for programs that parse
+ * `deckprobe --view values` output.
+ *
+ * Note the shape difference from {@link ProbeReport}: `unresolved_targets` is
+ * top level here rather than nested under `execution`.
+ */
+export interface ValuesReport {
+  schema_version: 2;
+  tool_version: string;
+  status: "ok" | "partial";
+  view: "values";
+  input: {
+    display_name: string;
+    source_kind: SourceKind;
+    file_size: number;
+  };
+  driver: {
+    id: string;
+    profile: string;
+  };
+  /** Keyed by canonical target name, even when requested by a short alias. */
+  values: Record<string, unknown>;
+  unresolved_targets: string[];
+  piggyback_targets?: string[];
+  diagnostics: Diagnostic[];
+}
+
+/** What `probe()` and `probeFile()` resolve to. See {@link ValuesReport} for CLI `--view values`. */
 export type ProbeResult = ProbeReport | ErrorReport;
 
 export interface FormatsReport {

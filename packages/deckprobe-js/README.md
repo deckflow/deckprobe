@@ -210,6 +210,12 @@ does not mean the value is right 95% of the time. See
 `node_bytes` for byte input under Node, `local_file` from `probeFile()` and the
 native CLI, plus any custom value passed as `options.sourceKind`.
 
+There is no `view` option. `--view values` is a CLI flag, so `probe()` and
+`probeFile()` always resolve the full evidence report and `ProbeResult` is
+`ProbeReport | ErrorReport`. If you parse `deckprobe --view values` output
+instead, the exported `ValuesReport` type describes that envelope — note its
+`unresolved_targets` sits at the top level rather than under `execution`.
+
 Apple iWork files use the same selectors and target IDs as the native engine.
 For example:
 
