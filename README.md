@@ -461,6 +461,14 @@ Schema version 2 uses one JSON envelope on standard output. Top-level `status` i
 - the executed `path` and evidence `source`;
 - deterministic physical-byte, expanded-byte, and random-read counters for the whole probe.
 
+`confidence` records how strong the evidence for a value is — `exact` when it was read from the
+authoritative structure, `high` when it came from a statistic the authoring application saved,
+`medium` when it was inferred from a proxy. The paired `confidence_score` is a **fixed constant per
+label** (`0.4`, `0.7`, `0.95`, `1.0`), not a calibrated probability: `0.95` does not mean the value
+is right 95% of the time. Likewise `partial` only means some requested target was unresolved — the
+other results are still valid, and it is not a verdict on the document's health. See
+[Reading confidence and partial results](docs/CLI-REFERENCE.md#reading-confidence-and-partial-results).
+
 Wall-clock `elapsed_ms` is omitted by default so identical inputs and options produce byte-identical JSON. Add `--telemetry` when timing is needed.
 
 Use `--strict` when unresolved targets should make the command exit non-zero.

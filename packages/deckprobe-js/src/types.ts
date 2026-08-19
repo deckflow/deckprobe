@@ -1,5 +1,34 @@
 export type ProbeLevel = "header" | "metadata" | "deep";
 export type Confidence = "none" | "low" | "medium" | "high" | "exact";
+/**
+ * Where the probed bytes came from, as reported in `input.source_kind`.
+ *
+ * The built-in values are listed so they narrow in a `switch` or comparison,
+ * while the trailing `(string & {})` keeps a custom {@link ProbeCallOptions.sourceKind}
+ * assignable without widening the union to plain `string`.
+ */
+export type SourceKind =
+  | "browser_bytes"
+  | "node_bytes"
+  | "local_file"
+  | "stdin"
+  | "jsonl_bytes"
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | (string & {});
+
+/**
+ * Compile-time guard for {@link SourceKind}.
+ *
+ * `node-smoke.mjs` and `browser-smoke.mjs` assert these exact strings at
+ * runtime, so narrowing the union again -- as an earlier release did, declaring
+ * only `"browser_bytes"` -- would republish types that reject a valid Node or
+ * file report. `npm run check` fails if that happens.
+ */
+type AssertSourceKind<T extends SourceKind> = T;
+type _RuntimeSourceKinds = AssertSourceKind<
+  "browser_bytes" | "node_bytes" | "local_file"
+>;
+
 export type TargetStatus =
   | "resolved"
   | "estimated"
@@ -39,7 +68,7 @@ export interface ProbeCallOptions extends ProbeOptions {
    * browser and `node_bytes` under Node; `probeFile()` reports `local_file`.
    * Set it when bytes reached you some other way and the report should say so.
    */
-  sourceKind?: string;
+  sourceKind?: SourceKind;
 }
 
 /** Node's `Buffer` is a `Uint8Array`, so it is accepted wherever bytes are. */
@@ -74,7 +103,7 @@ export interface ProbeReport {
   status: "ok" | "partial";
   input: {
     display_name: string;
-    source_kind: "browser_bytes";
+    source_kind: SourceKind;
     file_size: number;
   };
   driver: {

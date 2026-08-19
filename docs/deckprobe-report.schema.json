@@ -3,57 +3,116 @@
   "$id": "https://github.com/deckflow/deckprobe/blob/main/docs/deckprobe-report.schema.json",
   "title": "DeckProbe JSON envelope v2",
   "oneOf": [
-    { "$ref": "#/$defs/probeReport" },
-    { "$ref": "#/$defs/valuesReport" },
-    { "$ref": "#/$defs/errorReport" }
+    {
+      "$ref": "#/$defs/probeReport"
+    },
+    {
+      "$ref": "#/$defs/valuesReport"
+    },
+    {
+      "$ref": "#/$defs/errorReport"
+    }
   ],
   "$defs": {
     "base": {
       "type": "object",
-      "required": ["schema_version", "tool_version", "status"],
+      "required": [
+        "schema_version",
+        "tool_version",
+        "status"
+      ],
       "properties": {
-        "schema_version": { "const": 2 },
-        "tool_version": { "type": "string" },
-        "status": { "type": "string" }
+        "schema_version": {
+          "const": 2
+        },
+        "tool_version": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
       }
     },
     "probeReport": {
       "allOf": [
-        { "$ref": "#/$defs/base" },
+        {
+          "$ref": "#/$defs/base"
+        },
         {
           "type": "object",
-          "required": ["input", "driver", "results", "execution", "diagnostics"],
+          "required": [
+            "input",
+            "driver",
+            "results",
+            "execution",
+            "diagnostics"
+          ],
           "properties": {
-            "schema_version": { "const": 2 },
-            "tool_version": { "type": "string" },
-            "status": { "enum": ["ok", "partial"] },
+            "schema_version": {
+              "const": 2
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "ok",
+                "partial"
+              ],
+              "description": "Report-level outcome. 'ok' means every requested target was satisfied. 'partial' means at least one requested target could not be resolved at the requested confidence; the remaining results are still valid and usable. 'partial' is not a statement about the document's health -- a file with no author metadata reports 'partial' for that target while every structural value is correct. See 'execution.unresolved_targets' for which targets were affected, and each entry's own 'status' for why."
+            },
             "input": {
               "type": "object",
-              "required": ["display_name", "source_kind", "file_size"],
+              "required": [
+                "display_name",
+                "source_kind",
+                "file_size"
+              ],
               "properties": {
-                "display_name": { "type": "string" },
-                "source_kind": { "type": "string", "minLength": 1 },
-                "file_size": { "type": "integer", "minimum": 0 }
+                "display_name": {
+                  "type": "string"
+                },
+                "source_kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "file_size": {
+                  "type": "integer",
+                  "minimum": 0
+                }
               },
               "additionalProperties": false
             },
             "driver": {
               "type": "object",
-              "required": ["id", "profile"],
+              "required": [
+                "id",
+                "profile"
+              ],
               "properties": {
-                "id": { "type": "string" },
-                "profile": { "type": "string" }
+                "id": {
+                  "type": "string"
+                },
+                "profile": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             },
             "results": {
               "type": "object",
-              "additionalProperties": { "$ref": "#/$defs/evidence" }
+              "additionalProperties": {
+                "$ref": "#/$defs/evidence"
+              }
             },
-            "execution": { "$ref": "#/$defs/execution" },
+            "execution": {
+              "$ref": "#/$defs/execution"
+            },
             "diagnostics": {
               "type": "array",
-              "items": { "$ref": "#/$defs/diagnostic" }
+              "items": {
+                "$ref": "#/$defs/diagnostic"
+              }
             }
           },
           "additionalProperties": false
@@ -62,17 +121,31 @@
     },
     "errorReport": {
       "allOf": [
-        { "$ref": "#/$defs/base" },
+        {
+          "$ref": "#/$defs/base"
+        },
         {
           "type": "object",
-          "required": ["error"],
+          "required": [
+            "error"
+          ],
           "properties": {
-            "schema_version": { "const": 2 },
-            "tool_version": { "type": "string" },
-            "status": { "const": "error" },
+            "schema_version": {
+              "const": 2
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "status": {
+              "const": "error"
+            },
             "error": {
               "type": "object",
-              "required": ["code", "message", "exit_code"],
+              "required": [
+                "code",
+                "message",
+                "exit_code"
+              ],
               "properties": {
                 "code": {
                   "enum": [
@@ -86,8 +159,14 @@
                     "PARSER_FAILURE"
                   ]
                 },
-                "message": { "type": "string" },
-                "exit_code": { "type": "integer", "minimum": 1, "maximum": 6 }
+                "message": {
+                  "type": "string"
+                },
+                "exit_code": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6
+                }
               },
               "additionalProperties": false
             }
@@ -98,7 +177,9 @@
     },
     "valuesReport": {
       "allOf": [
-        { "$ref": "#/$defs/base" },
+        {
+          "$ref": "#/$defs/base"
+        },
         {
           "type": "object",
           "required": [
@@ -110,26 +191,57 @@
             "diagnostics"
           ],
           "properties": {
-            "schema_version": { "const": 2 },
-            "tool_version": { "type": "string" },
-            "status": { "enum": ["ok", "partial"] },
-            "view": { "const": "values" },
+            "schema_version": {
+              "const": 2
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "ok",
+                "partial"
+              ],
+              "description": "Report-level outcome. 'ok' means every requested target was satisfied. 'partial' means at least one requested target could not be resolved at the requested confidence; the remaining results are still valid and usable. 'partial' is not a statement about the document's health -- a file with no author metadata reports 'partial' for that target while every structural value is correct. See 'execution.unresolved_targets' for which targets were affected, and each entry's own 'status' for why."
+            },
+            "view": {
+              "const": "values"
+            },
             "input": {
               "type": "object",
-              "required": ["display_name", "source_kind", "file_size"],
+              "required": [
+                "display_name",
+                "source_kind",
+                "file_size"
+              ],
               "properties": {
-                "display_name": { "type": "string" },
-                "source_kind": { "type": "string", "minLength": 1 },
-                "file_size": { "type": "integer", "minimum": 0 }
+                "display_name": {
+                  "type": "string"
+                },
+                "source_kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "file_size": {
+                  "type": "integer",
+                  "minimum": 0
+                }
               },
               "additionalProperties": false
             },
             "driver": {
               "type": "object",
-              "required": ["id", "profile"],
+              "required": [
+                "id",
+                "profile"
+              ],
               "properties": {
-                "id": { "type": "string" },
-                "profile": { "type": "string" }
+                "id": {
+                  "type": "string"
+                },
+                "profile": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             },
@@ -139,15 +251,21 @@
             },
             "unresolved_targets": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             },
             "piggyback_targets": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             },
             "diagnostics": {
               "type": "array",
-              "items": { "$ref": "#/$defs/diagnostic" }
+              "items": {
+                "$ref": "#/$defs/diagnostic"
+              }
             }
           },
           "additionalProperties": false
@@ -156,9 +274,18 @@
     },
     "evidence": {
       "type": "object",
-      "required": ["target", "status", "confidence", "confidence_score", "path", "source"],
+      "required": [
+        "target",
+        "status",
+        "confidence",
+        "confidence_score",
+        "path",
+        "source"
+      ],
       "properties": {
-        "target": { "type": "string" },
+        "target": {
+          "type": "string"
+        },
         "status": {
           "enum": [
             "resolved",
@@ -169,47 +296,121 @@
             "invalid",
             "budget_exceeded",
             "failed"
-          ]
+          ],
+          "description": "Outcome for this target. Only 'resolved' and 'estimated' carry 'value'. 'unknown' means the path ran and the document simply does not record the fact, which is a normal answer and not an error. 'unsupported' means this format has no path for the target, 'invalid' means the document records something that fails validation, 'budget_exceeded' means a limit stopped this target specifically, 'failed' means the path errored, and 'planned' appears only under --plan-only."
         },
         "value": true,
-        "confidence": { "enum": ["none", "low", "medium", "high", "exact"] },
-        "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
-        "path": { "type": "string" },
-        "source": { "type": "string" }
+        "confidence": {
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high",
+            "exact"
+          ],
+          "description": "How strong the evidence for this value is, as judged by the path that produced it. 'exact' means the value was read directly from the authoritative structure in the container. 'high' means it came from a statistic the authoring application saved, such as the slide count in docProps/app.xml, which is authoritative unless that application left it stale. 'medium' means it was inferred from a proxy, such as counting worksheet parts rather than reading the workbook's declared sheets. 'low' means weak or indirect evidence. 'none' accompanies a result that carries no value. These labels describe evidence strength, not a measured accuracy rate."
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fixed numeric form of 'confidence': none=0.0, low=0.4, medium=0.7, high=0.95, exact=1.0. These are constants attached to each label so callers can compare and threshold without parsing strings. They are NOT calibrated probabilities: 0.95 does not mean the value is correct 95% of the time on real-world files, and no corpus measurement backs these numbers. Use them only to order or filter results."
+        },
+        "path": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "execution": {
       "type": "object",
-      "required": ["probe_level", "paths", "estimated_cost", "actual_cost", "unresolved_targets"],
+      "required": [
+        "probe_level",
+        "paths",
+        "estimated_cost",
+        "actual_cost",
+        "unresolved_targets"
+      ],
       "properties": {
-        "probe_level": { "enum": ["header", "metadata", "deep"] },
-        "paths": { "type": "array", "items": { "type": "string" } },
-        "estimated_cost": { "type": "integer", "minimum": 0 },
+        "probe_level": {
+          "enum": [
+            "header",
+            "metadata",
+            "deep"
+          ]
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "estimated_cost": {
+          "type": "integer",
+          "minimum": 0
+        },
         "actual_cost": {
           "type": "object",
-          "required": ["physical_bytes_read", "expanded_bytes", "random_reads"],
+          "required": [
+            "physical_bytes_read",
+            "expanded_bytes",
+            "random_reads"
+          ],
           "properties": {
-            "physical_bytes_read": { "type": "integer", "minimum": 0 },
-            "expanded_bytes": { "type": "integer", "minimum": 0 },
-            "random_reads": { "type": "integer", "minimum": 0 },
-            "elapsed_ms": { "type": "number", "minimum": 0 }
+            "physical_bytes_read": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expanded_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "random_reads": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "elapsed_ms": {
+              "type": "number",
+              "minimum": 0
+            }
           },
           "additionalProperties": false
         },
-        "unresolved_targets": { "type": "array", "items": { "type": "string" } }
-        ,
-        "piggyback_targets": { "type": "array", "items": { "type": "string" } }
+        "unresolved_targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "piggyback_targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
       "additionalProperties": false
     },
     "diagnostic": {
       "type": "object",
-      "required": ["level", "code", "message"],
+      "required": [
+        "level",
+        "code",
+        "message"
+      ],
       "properties": {
-        "level": { "type": "string" },
-        "code": { "type": "string" },
-        "message": { "type": "string" }
+        "level": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     }

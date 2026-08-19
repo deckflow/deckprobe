@@ -434,15 +434,111 @@ jobs:
           done
           npm publish "$tarball" --access public --provenance --tag "$publish_tag"
 
+  # The release job verifies a locally packed tarball. That cannot catch a
+  # package that reaches the registry incomplete, which is exactly how 2.3.0
+  # shipped without dist/ and wasm/ while every pre-publish gate passed. Install
+  # the published version from the public registry in a clean directory and
+  # exercise it the way a consumer would.
+  verify-published:
+    name: Verify the published npm package
+    needs:
+      - plan
+      - publish-npm
+    if: ${{ always() && needs.publish-npm.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Verify the registry artifact and run it as a consumer
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          package="@deckflow/deckprobe@${version}"
+
+          # npm publishes are not immediately readable. Retry, then fail loudly.
+          for attempt in $(seq 1 15); do
+            if npm view "$package" version >/dev/null 2>&1; then
+              echo "$package is readable from the registry"
+              break
+            fi
+            if [[ "$attempt" == 15 ]]; then
+              echo "$package never became readable from the registry" >&2
+              exit 1
+            fi
+            echo "attempt $attempt: not readable yet, waiting"
+            sleep 20
+          done
+
+          # The declared entry points must actually be inside the published tarball.
+          npm pack --dry-run --json "$package" > packed.json
+          node -e '
+            const packed = require("./packed.json")[0];
+            const files = new Set(packed.files.map((file) => file.path));
+            const required = [
+              "dist/index.js",
+              "dist/index.node.js",
+              "dist/worker.js",
+              "wasm/deckprobe_wasm.js",
+              "wasm/deckprobe_wasm_bg.wasm",
+            ];
+            const missing = required.filter((path) => !files.has(path));
+            if (missing.length) {
+              console.error(`registry tarball is missing: ${missing.join(", ")}`);
+              process.exit(1);
+            }
+            console.log(`registry tarball carries all ${required.length} declared entry points (${packed.entryCount} files)`);
+          '
+
+          # Install into a clean project, the way a consumer would.
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cd "$RUNNER_TEMP/consumer"
+          npm init -y >/dev/null
+          npm install "$package" >/dev/null
+
+          # The Node entry point, its WASM, and the discovery contract.
+          cat > check.mjs <<'CHECK'
+          import assert from "node:assert/strict";
+          import { writeFileSync } from "node:fs";
+          import { formats, probeFile, version } from "@deckflow/deckprobe";
+
+          const expected = process.argv[2];
+          assert.equal(await version(), expected, "runtime version disagrees with the published version");
+
+          const drivers = (await formats()).formats.map((entry) => entry.driver);
+          assert.ok(drivers.includes("pdf"), "discovery did not report the pdf driver");
+
+          // A minimal valid PDF, so the check needs no fixture from the repository.
+          writeFileSync("probe.pdf", "%PDF-1.7\n%%EOF\n");
+          const report = await probeFile("probe.pdf", { targets: ["@header"] });
+          assert.equal(report.schema_version, 2);
+          assert.equal(report.input.source_kind, "local_file");
+          assert.equal(report.driver.id, "pdf");
+          console.log("node entry point, WASM, discovery, and probeFile all work from the registry copy");
+          CHECK
+          node check.mjs "$version"
+
+          # The CLI resolves through its optional platform package.
+          npx --no-install deckprobe --version
+          echo "published $package verified from the public registry"
+
   announce:
     needs:
       - plan
       - host
       - publish-npm
+      - verify-published
     # use "always() && ..." to allow us to wait for all publish jobs while
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!
-    if: ${{ always() && needs.host.result == 'success' && needs.publish-npm.result == 'success' }}
+    # verify-published gates the announcement so a release cannot report success
+    # while the artifact on the public registry is incomplete.
+    if: ${{ always() && needs.host.result == 'success' && needs.publish-npm.result == 'success' && needs.verify-published.result == 'success' }}
     runs-on: "ubuntu-22.04"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

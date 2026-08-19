@@ -239,6 +239,86 @@ deckprobe -t slide_count,orientation \
 
 An explicitly named target can be valid for the detected format but unavailable at the chosen level or confidence. If some other requested target can be planned, the report records the unavailable target under `execution.unresolved_targets`. If no requested target has an eligible path, DeckProbe exits with status `1` as an unsupported-target request.
 
+## Reading confidence and partial results
+
+### What the confidence labels mean
+
+`confidence` describes how strong the evidence for one value is, as judged by the path that
+produced it. It is not a measured accuracy rate.
+
+| Label | Score | What normally backs it |
+| --- | --- | --- |
+| `exact` | `1.0` | Read directly from the authoritative structure in the container |
+| `high` | `0.95` | A statistic the authoring application saved, such as the slide count in `docProps/app.xml`. Authoritative unless that application left it stale |
+| `medium` | `0.7` | Inferred from a proxy, such as counting `xl/worksheets/sheet*.xml` parts instead of reading the workbook's declared sheets |
+| `low` | `0.4` | Weak or indirect evidence |
+| `none` | `0.0` | Accompanies a result that carries no value |
+
+**`confidence_score` is a fixed constant per label, not a calibrated probability.** `0.95` does not
+mean the value is correct 95% of the time on real-world files; no corpus measurement backs these
+numbers. Use them to order or threshold results, never to report an accuracy figure to a user.
+
+### Report status versus target status
+
+The report's own `status` is `ok` or `partial`. A result's `status` is one of eight values, and the
+two answer different questions.
+
+`partial` means at least one requested target could not be resolved at the requested confidence. It
+says nothing about whether the document is damaged or unsafe — the remaining results are still
+valid.
+
+```bash
+deckprobe -t slide_count,author --pretty deck.pptx
+```
+
+```jsonc
+{
+  "status": "partial",                       // because author could not be resolved
+  "results": {
+    "powerpoint.slide_count": {
+      "status": "resolved", "value": 31,
+      "confidence": "high", "path": "powerpoint.app_statistics",
+      "source": "docProps/app.xml saved statistic"
+    },
+    "document.author": {
+      "status": "unknown",                   // the path ran; the file records no author
+      "confidence": "none"
+    }
+  },
+  "execution": { "unresolved_targets": ["document.author"] }
+}
+```
+
+The slide count here is perfectly good. Treating `partial` as a failure would discard it.
+
+Contrast that with a structural target the format cannot answer at all:
+
+```bash
+deckprobe -l d -t corrupted report.pdf     # exits 1
+```
+
+`corrupted` and `missing_assets` are declared for every modern format, but only the iWork drivers
+implement a path for them. Naming one on a PDF or OOXML file is an unsupported-target request, so
+DeckProbe exits `1` rather than returning a report. Use the `@quality` selector to get whatever the
+active driver actually supports.
+
+| Result `status` | Carries `value` | Meaning |
+| --- | --- | --- |
+| `resolved` | yes | Obtained at or above the requested confidence |
+| `estimated` | yes | Obtained, but an estimate |
+| `unknown` | no | The path ran; the document does not record this fact. A normal answer, not an error |
+| `unsupported` | no | This format has no path for the target |
+| `invalid` | no | The document records something that fails validation |
+| `budget_exceeded` | no | A limit stopped this target specifically |
+| `failed` | no | The path errored |
+| `planned` | no | `--plan-only` only |
+
+Distinguish `"value": null` on a `resolved` result — the field exists and is empty, which is an
+answer — from `status: "unknown"`, where the probe could not answer.
+
+Use `--strict` when an unresolved target must fail the command; it exits `5` and still writes the
+full report.
+
 ## Input interpretation and format options
 
 DeckProbe uses the normalized filename extension to select a format path, then verifies its signature and internal type. Renaming a PPTX to DOCX, for example, returns `MALFORMED_INPUT`. `-f`/`--input-format` adds another assertion; it does not force an unrelated parser onto the file:

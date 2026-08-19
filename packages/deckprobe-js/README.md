@@ -198,6 +198,18 @@ filename extension. `File` inputs use `File.name` automatically. Successful and
 partial probes return the same schema-v2 report as the native CLI; recognized
 probe failures return the schema-v2 error envelope.
 
+A `status` of `"partial"` means one requested target could not be resolved; the
+other results are still valid, and it is not a verdict on the document. Each
+result carries `confidence` (`exact`, `high`, `medium`, `low`, `none`) describing
+evidence strength, with `confidence_score` as a **fixed constant per label**
+(`1.0`, `0.95`, `0.7`, `0.4`, `0.0`) rather than a calibrated probability — `0.95`
+does not mean the value is right 95% of the time. See
+[Reading confidence and partial results](https://github.com/deckflow/deckprobe/blob/main/docs/CLI-REFERENCE.md#reading-confidence-and-partial-results).
+
+`input.source_kind` is typed as `SourceKind`: `browser_bytes` in the browser,
+`node_bytes` for byte input under Node, `local_file` from `probeFile()` and the
+native CLI, plus any custom value passed as `options.sourceKind`.
+
 Apple iWork files use the same selectors and target IDs as the native engine.
 For example:
 
