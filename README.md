@@ -504,7 +504,13 @@ follow external links, or send documents to a remote service.
 - `.xlsb` deep workbook parsing is not implemented.
 - Legacy XML iWork documents are recognized and rejected; only modern IWA packages are supported.
 - Pages exposes persisted page geometry, body-text structure, and cached pagination; rendered text-layout reconstruction is not implemented.
-- Network-backed range sources, persistent cache, and plugin loading are not implemented.
+- Network-backed range sources, persistent cache, and plugin loading are not implemented,
+  and are **not planned** for now. Both remote reads and a persistent cache would add
+  protocol, authentication, invalidation, privacy, and failure-handling surface, and no
+  measured workload has yet shown that fetching or rereading remote documents is a
+  material cost next to the local-file and byte-input paths. A proposal would need a
+  representative corpus with sizes, repeat-probe frequency, bytes transferred, and
+  latency before the work is scheduled.
 
 ## Development
 
