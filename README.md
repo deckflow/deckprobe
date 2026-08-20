@@ -450,7 +450,7 @@ requested targets + confidence + budget
        values + evidence + actual cost
 ```
 
-Each driver owns its targets, format options, candidate paths, and parsing logic. Word, Excel, and PowerPoint share bounded ZIP/OPC/XML paths. Keynote, Numbers, and Pages share a bounded ZIP/plist/IWA/Snappy/Protobuf layer while retaining separate profile validation and targets.
+Each driver owns its targets, format options, candidate paths, and parsing logic. Word, Excel, and PowerPoint share bounded ZIP/OPC/XML paths. Keynote, Numbers, and Pages share a bounded ZIP/plist/Snappy/IWA/Protobuf layer while retaining separate profile validation and targets.
 
 ### JSON contract
 
