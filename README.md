@@ -2,7 +2,7 @@
 
 # DeckProbe
 
-**`ffprobe` for PDF, Microsoft Office, and Apple iWork documents.**
+**`ffprobe` for documents, built for agents.**
 
 Ask for the facts you need. Get structured JSON with confidence, evidence, and measured I/O cost.
 
@@ -10,12 +10,16 @@ Ask for the facts you need. Get structured JSON with confidence, evidence, and m
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f80ed.svg)](LICENSE)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
-[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Agent skill](#use-from-a-coding-agent) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
+[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Runtime role](#where-deckprobe-fits) · [Agent skill](#use-from-a-coding-agent) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
 
 </div>
 
-DeckProbe is a target-driven Rust engine, native CLI, and browser SDK for
-inspecting untrusted PDF, Microsoft Office, and modern Apple iWork documents
+DeckProbe is the probing engine of the DeckFlow Runtime. It performs low-cost
+preflight inspection and returns structured evidence that callers can use before
+more expensive parsing, OCR, rendering, uploading, or model ingestion.
+
+Available as a target-driven Rust engine, native CLI, and browser SDK, DeckProbe
+inspects untrusted PDF, Microsoft Office, and modern Apple iWork documents
 without rendering them or starting a desktop office suite. Instead of eagerly
 unpacking everything, it chooses the cheapest probe path that can satisfy the
 targets and confidence you requested.
@@ -38,6 +42,25 @@ $ deckprobe --pretty -t slide_count deck.pptx
 
 User-facing examples use short target names; reports retain stable canonical
 keys for machine consumers.
+
+## Where DeckProbe fits
+
+DeckFlow is the Document Runtime for Agents. Its product model has three engine
+responsibilities:
+
+| Engine | Responsibility |
+|---|---|
+| Probe / DeckProbe | Inspect and expose bounded preflight signals for routing decisions. |
+| Parse / DeckParse | Make document content and structure operable as persistent state. |
+| Render / DeckRender | Produce visual representations for humans, AI, and software. |
+
+DeckProbe can run independently. In a larger Runtime workflow, its report helps
+the calling agent or application decide whether to parse, render, reject, or use
+another path. DeckProbe provides the evidence for that decision; it does not
+automatically choose or execute downstream actions.
+
+DeckProbe is not a general-purpose parser, renderer, OCR engine, editor, or
+complete security product.
 
 ## Why DeckProbe
 
@@ -495,7 +518,7 @@ man ./deckprobe.1
 
 ## Current limitations
 
-DeckProbe 2.2 intentionally does not render files, run OCR, execute macros,
+DeckProbe intentionally does not render files, run OCR, execute macros,
 follow external links, or send documents to a remote service.
 
 - PDF metadata currently reads the Info dictionary; XMP merging is not implemented.
