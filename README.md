@@ -14,11 +14,7 @@ Ask for the facts you need. Get structured JSON with confidence, evidence, and m
 
 </div>
 
-DeckProbe is a target-driven Rust engine, native CLI, and browser SDK for
-inspecting untrusted PDF, Microsoft Office, and modern Apple iWork documents
-without rendering them or starting a desktop office suite. Instead of eagerly
-unpacking everything, it chooses the cheapest probe path that can satisfy the
-targets and confidence you requested.
+DeckProbe is a goal-oriented Rust engine, native CLI, and browser SDK for examining untrusted PDF, Microsoft Office, and modern Apple iWork documents—without rendering them or launching a desktop office suite. Rather than unpacking everything upfront, it selects the most efficient probe path that meets your requested targets and confidence level.
 
 ```console
 $ deckprobe --pretty -t slide_count deck.pptx
