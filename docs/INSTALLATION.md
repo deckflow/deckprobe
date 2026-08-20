@@ -27,7 +27,7 @@ a checksum failure.
 For a manually downloaded archive, verify its checksum with:
 
 ```sh
-shasum -a 256 deckprobe-<version>-<target>.tar.gz
+shasum -a 256 deckprobe-<target>.tar.gz
 ```
 
 ## Linux
@@ -44,7 +44,7 @@ then installs under `$CARGO_HOME/bin` (or `$HOME/.cargo/bin`). A manually
 downloaded archive can be checked with:
 
 ```sh
-sha256sum deckprobe-<version>-<target>.tar.gz
+sha256sum deckprobe-<target>.tar.gz
 ```
 
 On hardened systems, execution can still be blocked by a `noexec` mount,
@@ -68,7 +68,7 @@ release is not Authenticode-signed.
 For a manually downloaded archive, verify its checksum with:
 
 ```powershell
-Get-FileHash .\deckprobe-<version>-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Get-FileHash .\deckprobe-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 ```
 
 ## Supported prebuilt targets
