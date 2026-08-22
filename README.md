@@ -10,7 +10,7 @@ Ask for the facts you need. Get structured JSON with confidence, evidence, and m
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f80ed.svg)](LICENSE)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
-[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Runtime role](#where-deckprobe-fits) · [Agent skill](#use-from-a-coding-agent) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
+[Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Runtime role](#where-deckprobe-fits) · [Agent skill](#use-from-a-coding-agent) · [MCP server](#mcp-server) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
 
 </div>
 
@@ -228,6 +228,31 @@ skill's first step checks for the CLI and falls back to `npx -y @deckflow/deckpr
 when it is missing. See
 [Installing agent assets](docs/CLI-REFERENCE.md#installing-agent-assets) for the
 agent/directory table and the overwrite policy.
+
+## MCP server
+
+An agent with no shell — Claude Desktop, an IDE chat pane, a hosted agent —
+reaches DeckProbe through
+[deckprobe-mcp-server](https://github.com/deckflow/deckprobe-mcp-server), which
+serves this engine over [MCP](https://modelcontextprotocol.io) as four typed
+tools: `probe`, `probe_batch`, `list_formats`, and `list_targets`.
+
+```sh
+claude mcp add deckprobe -- npx -y @deckflow/deckprobe-mcp
+```
+
+```jsonc
+// Claude Desktop, Cursor, VS Code, Zed — any client reading mcpServers
+{ "deckprobe": { "command": "npx", "args": ["-y", "@deckflow/deckprobe-mcp"] } }
+```
+
+It spawns the same native binary this repository ships, returns schema-v2
+reports unmodified, and validates tool arguments before the engine runs. It is
+listed in the MCP Registry as `io.github.deckflow/deckprobe`.
+
+The skill and the MCP server teach the same vocabulary. Use the skill when the
+agent has a shell and you want the CLI's complete surface; use the MCP server
+when it does not.
 
 ## JavaScript package
 
