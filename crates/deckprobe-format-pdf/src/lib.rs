@@ -1129,8 +1129,10 @@ fn object_text(document: &Document, object: &Object) -> Option<String> {
 fn decode_pdf_string(bytes: &[u8]) -> String {
     if bytes.starts_with(&[0xfe, 0xff]) {
         let words = bytes[2..]
-            .chunks_exact(2)
-            .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u16::from_be_bytes(*pair))
             .collect::<Vec<_>>();
         String::from_utf16_lossy(&words)
     } else {
