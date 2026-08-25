@@ -712,8 +712,10 @@ fn parse_summary_information(bytes: &[u8]) -> BTreeMap<u32, SummaryValue> {
                 let end = start.checked_add(length as usize * 2)?.min(bytes.len());
                 let words = bytes
                     .get(start..end)?
-                    .chunks_exact(2)
-                    .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|pair| u16::from_le_bytes(*pair))
                     .take_while(|value| *value != 0)
                     .collect::<Vec<_>>();
                 Some(SummaryValue::Text(String::from_utf16_lossy(&words)))
