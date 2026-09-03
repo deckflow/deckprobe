@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const repositoryRoot = resolve(packageDirectory, "../..");
 const output = execFileSync(
   "npm",
   ["pack", "--dry-run", "--json", "--ignore-scripts"],
@@ -16,6 +18,8 @@ const files = new Map(
   packed.files.map((entry) => [entry.path.replaceAll("\\", "/"), entry.size]),
 );
 const required = [
+  "LICENSE",
+  "NOTICE",
   "bin/deckprobe.js",
   "dist/index.js",
   "dist/index.node.js",
@@ -27,6 +31,15 @@ const required = [
 for (const path of required) {
   assert.ok(files.has(path), `packed tarball is missing ${path}`);
   assert.ok(files.get(path) > 0, `packed tarball contains an empty ${path}`);
+}
+
+// Keep the standalone package's notices identical to the repository originals.
+for (const path of ["LICENSE", "NOTICE"]) {
+  assert.equal(
+    readFileSync(resolve(packageDirectory, path), "utf8"),
+    readFileSync(resolve(repositoryRoot, path), "utf8"),
+    `package ${path} must match the repository root`,
+  );
 }
 
 console.log(

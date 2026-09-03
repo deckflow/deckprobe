@@ -24,6 +24,8 @@ unix-archive = ".tar.gz"
 checksum = "sha256"
 pr-run-mode = "plan"
 github-attestations = true
+# LICENSE is auto-included by cargo-dist; NOTICE must be listed explicitly.
+include = ["NOTICE"]
 
 # Use maintained native macOS runners rather than the retiring macOS 14 image.
 [dist.github-custom-runners]

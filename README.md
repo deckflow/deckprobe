@@ -7,7 +7,7 @@
 Ask for the facts you need. Get structured JSON with confidence, evidence, and measured I/O cost.
 
 [![CI](https://github.com/deckflow/deckprobe/actions/workflows/ci.yml/badge.svg)](https://github.com/deckflow/deckprobe/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2f80ed.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-2f80ed.svg)](LICENSE)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
 [Install](docs/INSTALLATION.md) · [Quickstart](#quickstart) · [Runtime role](#where-deckprobe-fits) · [Agent skill](#use-from-a-coding-agent) · [MCP server](#mcp-server) · [npm package](#javascript-package) · [Execution modes](#execution-modes) · [Examples](#common-recipes) · [Formats](#supported-formats) · [CLI reference](docs/CLI-REFERENCE.md)
@@ -578,4 +578,6 @@ Contributions are welcome—read [CONTRIBUTING.md](CONTRIBUTING.md). Treat every
 
 ## License
 
-DeckProbe is available under the [MIT License](LICENSE).
+DeckProbe is available under the [Apache License 2.0](LICENSE).
+See [NOTICE](NOTICE) for copyright attribution. Third-party components retain
+their own licenses.

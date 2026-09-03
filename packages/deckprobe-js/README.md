@@ -264,3 +264,8 @@ drives Vite through this package's own dependency, so it needs Node
 
 The package is published independently as `@deckflow/deckprobe` while its Rust
 binding remains part of the main DeckProbe Cargo workspace.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for
+copyright attribution. Third-party components retain their own licenses.

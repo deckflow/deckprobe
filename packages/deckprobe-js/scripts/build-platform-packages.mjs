@@ -115,7 +115,7 @@ function writePackage(platform, binarySource) {
     os: [platform.os],
     cpu: [platform.cpu],
     ...(platform.libc ? { libc: [platform.libc] } : {}),
-    files: ["bin"],
+    files: ["bin", "LICENSE", "NOTICE"],
     engines: manifest.engines,
     publishConfig: manifest.publishConfig,
     // Yarn Berry would otherwise store the binary inside a zip, where it
@@ -127,6 +127,7 @@ function writePackage(platform, binarySource) {
     `${JSON.stringify(platformManifest, undefined, 2)}\n`,
   );
   copyFileSync(join(repositoryRoot, "LICENSE"), join(directory, "LICENSE"));
+  copyFileSync(join(repositoryRoot, "NOTICE"), join(directory, "NOTICE"));
   writeFileSync(
     join(directory, "README.md"),
     `# ${packageName(platform)}\n\n` +

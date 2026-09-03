@@ -12,7 +12,7 @@
       "description": "Inspect PDF, Microsoft Office, and Apple iWork documents with bounded, deterministic probes.",
       "homepage": "https://github.com/deckflow/deckprobe",
       "repository": "https://github.com/deckflow/deckprobe",
-      "license": "MIT",
+      "license": "Apache-2.0",
       "keywords": ["pdf", "office", "iwork", "metadata", "document-inspection"]
     }
   ]

@@ -30,6 +30,8 @@ const SKILL_OWNERSHIP_MARKER: &str = "deckprobe-skill-format:";
 /// The `embedded_skill` tests below fail if this table and the directory ever
 /// disagree.
 pub const SKILL_FILES: &[(&str, &str)] = &[
+    ("LICENSE", include_str!("../../../skills/deckprobe/LICENSE")),
+    ("NOTICE", include_str!("../../../skills/deckprobe/NOTICE")),
     (
         "SKILL.md",
         include_str!("../../../skills/deckprobe/SKILL.md"),

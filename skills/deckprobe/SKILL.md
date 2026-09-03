@@ -8,7 +8,7 @@ description: >-
   verifying a file really is the format its extension claims. Also use to inventory many documents
   at once. Returns bounded, deterministic JSON on stdout. Never renders, never runs macros, never
   follows external references, never sends the file anywhere.
-license: MIT
+license: Apache-2.0
 compatibility: >-
   Needs the deckprobe CLI on PATH, or Node.js with network access to run it through npx. Needs a
   shell tool and local read access to the file. Probing itself needs no network.

@@ -20,3 +20,9 @@ bounded read, decompression, and archive-entry budgets.
 
 Never commit document samples or customer content, absolute local paths, build
 outputs, passwords, or tokens.
+
+## License
+
+Unless you explicitly state otherwise, contributions intentionally submitted
+for inclusion in DeckProbe are licensed under the [Apache License 2.0](LICENSE),
+as described in Section 5 of that license.

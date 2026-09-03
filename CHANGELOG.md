@@ -4,6 +4,32 @@ All notable changes to DeckProbe are documented here.
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-09-03
+
+### Added
+
+- Export a `ValuesReport` TypeScript type for consumers of CLI `--view values`
+  output.
+
+### Changed
+
+- Change the project license from MIT to Apache-2.0. Previously published
+  releases remain available under the license included with those releases.
+- Include `LICENSE` and copyright `NOTICE` files in the npm packages, native
+  release archives, and installable agent skill.
+
+### Fixed
+
+- Align TypeScript source-kind types and the report JSON Schema with the
+  runtime output, including compact CLI reports.
+- Verify published npm artifacts without false missing-file errors from
+  shell pipeline handling.
+
+### Security
+
+- Update the transitive development dependency `fast-uri` from 3.1.5 to 3.1.7
+  to address URI normalization advisories reported by the release audit.
+
 ## [2.4.0] - 2026-08-19
 
 ### Added
