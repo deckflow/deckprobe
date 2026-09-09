@@ -374,6 +374,9 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - name: Complete lock entries for newly published platform packages
+        working-directory: packages/deckprobe-js
+        run: node scripts/refresh-platform-lock.mjs
       - name: Install JavaScript dependencies
         working-directory: packages/deckprobe-js
         run: npm ci
