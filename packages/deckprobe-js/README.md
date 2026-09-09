@@ -1,6 +1,6 @@
 # @deckflow/deckprobe
 
-DeckProbe 2.2 for JavaScript: the `deckprobe` command line tool for Node, and a
+DeckProbe 2.6 for JavaScript: the `deckprobe` command line tool for Node, and a
 browser SDK that runs the same Rust engine in WebAssembly. In the browser,
 documents stay in the browser — the package does not upload files.
 
@@ -28,6 +28,39 @@ If installation skipped optional dependencies, `deckprobe` reports which
 platform package is missing. Install it directly, or build from source with
 `cargo install --git https://github.com/deckflow/deckprobe --locked deckprobe`.
 
+## Bounded Node preflight (2.6)
+
+```ts
+import { probeFile } from "@deckflow/deckprobe";
+const report = await probeFile("deck.pptx", {
+  targets: ["powerpoint.slide_count", "powerpoint.smartart_data_part_count"],
+  targetConfidence: { "powerpoint.slide_count": "exact" },
+  formatOptions: { "powerpoint.slide_count_path": "presentation-xml" },
+  budget: { timeoutMs: 1000 },
+}, {
+  deadlineMs: 2500,
+  maxInputBytes: 16 * 1024 * 1024,
+  backend: "auto",
+});
+```
+
+The optional third argument enables a Node host deadline covering startup, input loading
+and parsing. `auto` uses an installed same-version optional native package, otherwise a
+fresh WASM Worker. It never downloads a runtime or sends document bytes to a service.
+The default bounded request caps input at 16 MiB, output at 1 MiB and simultaneous workers
+at two. `signal` cancels the request. `onMetrics` receives host timings after cleanup;
+validation failures do not start an executor. Engine `actual_cost` keeps its existing meaning.
+A terminated request returns a schema-v2 `BUDGET_EXCEEDED` error, with no invented facts.
+The two-argument API below retains its original direct WASM behavior.
+
+A 2500 ms deadline leaves cleanup/scheduling margin for a 3-second response SLO on supported
+local environments. It is not a real-time guarantee or a guarantee of complete inspection.
+Direct native CLI `--timeout-ms` remains cooperative; `--max-input-bytes` adds a separate
+source-size cap. Browser APIs are unchanged.
+
+SmartArt counts declared, existing, unique diagram-data parts by effective Content Type,
+including nonstandard part names. It does not count visible instances or parse SmartArt text.
+
 ## Node API
 
 The `node` export condition loads the WebAssembly binary from disk, so the
@@ -48,7 +81,7 @@ byte identical to the native CLI on the same input. `probe()` accepts `Buffer`,
 `node_bytes`. `deckProbeWasmPath` exposes the absolute path of the binary being
 loaded.
 
-`probeFile()` reads the whole file into memory, because the WebAssembly engine
+The two-argument `probeFile()` reads the whole file into memory, because the WebAssembly engine
 takes bytes rather than a file handle. The `deckprobe` command reads lazily
 instead — for a 300 KB PPTX it touches under 18 KB — so prefer the CLI, or
 `--jsonl` for batches, when inputs are large.

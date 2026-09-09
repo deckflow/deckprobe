@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -175,7 +175,11 @@ struct Cli {
     )]
     max_archive_entries: Option<usize>,
 
-    /// Wall-clock budget in milliseconds.
+    /// Maximum source file or stdin size before parsing (separate from physical read budget).
+    #[arg(long, value_name = "BYTES", help_heading = "Resource limits")]
+    max_input_bytes: Option<u64>,
+
+    /// Cooperative engine budget in milliseconds; not a hard process deadline.
     #[arg(
         short = 'T',
         long,
@@ -424,7 +428,21 @@ fn run(cli: Cli) -> deckprobe_core::Result<u8> {
         None => {}
     }
 
-    let options = probe_options(&cli)?;
+    if cli.max_input_bytes == Some(0) {
+        return Err(DeckProbeError::InvalidRequest(
+            "max-input-bytes must be positive".into(),
+        ));
+    }
+    let mut options = probe_options(&cli)?;
+    if cli.input.as_ref().is_some_and(|p| p.as_os_str() == "-")
+        && let Some(cap) = cli.max_input_bytes
+    {
+        let current = options
+            .budget
+            .max_physical_bytes
+            .unwrap_or(Budget::for_level(options.level).max_physical_bytes);
+        options.budget.max_physical_bytes = Some(current.min(cap));
+    }
     if cli.jsonl {
         return run_jsonl(&cli, &options);
     }
@@ -447,7 +465,7 @@ fn run(cli: Cli) -> deckprobe_core::Result<u8> {
                 "--stdin-name is only valid when INPUT is '-'".to_owned(),
             ));
         }
-        std::sync::Arc::new(PathSource::open(input, None)?)
+        std::sync::Arc::new(PathSource::bounded(input, None, cli.max_input_bytes)?)
     };
 
     let report = probe(source, options)?;
@@ -565,7 +583,7 @@ fn run_jsonl(cli: &Cli, options: &ProbeOptions) -> deckprobe_core::Result<u8> {
                     "JSONL line {line_number} is invalid: {error}"
                 ))
             })
-            .and_then(|input| jsonl_source(input, options))
+            .and_then(|input| jsonl_source(input, options, cli.max_input_bytes))
             .and_then(|source| probe(source, options.clone()));
         match outcome {
             Ok(report) => {
@@ -593,19 +611,38 @@ fn run_jsonl(cli: &Cli, options: &ProbeOptions) -> deckprobe_core::Result<u8> {
 fn jsonl_source(
     input: JsonlInput,
     options: &ProbeOptions,
+    max_input_bytes: Option<u64>,
 ) -> deckprobe_core::Result<std::sync::Arc<dyn ProbeSource>> {
     match input {
-        JsonlInput::Path(path) => Ok(std::sync::Arc::new(PathSource::open(path, None)?)),
+        JsonlInput::Path(path) => Ok(std::sync::Arc::new(PathSource::bounded(
+            path,
+            None,
+            max_input_bytes,
+        )?)),
         JsonlInput::Record {
             path: Some(path),
             name,
             data_base64: None,
-        } => Ok(std::sync::Arc::new(PathSource::open(path, name)?)),
+        } => Ok(std::sync::Arc::new(PathSource::bounded(
+            path,
+            name,
+            max_input_bytes,
+        )?)),
         JsonlInput::Record {
             path: None,
             name: Some(name),
             data_base64: Some(data),
         } => {
+            let mut budget = Budget::for_level(options.level);
+            options.budget.apply_to(&mut budget);
+            let limit = max_input_bytes
+                .unwrap_or(u64::MAX)
+                .min(budget.max_physical_bytes);
+            if data.len() as u64 > limit.saturating_add(2).saturating_div(3).saturating_mul(4) {
+                return Err(DeckProbeError::BudgetExceeded(
+                    "JSONL input exceeds size limit".into(),
+                ));
+            }
             let bytes = base64::engine::general_purpose::STANDARD
                 .decode(data)
                 .map_err(|error| {
@@ -613,7 +650,7 @@ fn jsonl_source(
                 })?;
             let mut budget = Budget::for_level(options.level);
             options.budget.apply_to(&mut budget);
-            if bytes.len() as u64 > budget.max_physical_bytes {
+            if bytes.len() as u64 > limit {
                 return Err(DeckProbeError::BudgetExceeded(format!(
                     "JSONL byte payload size {} exceeds physical read budget {}",
                     bytes.len(),
@@ -636,15 +673,23 @@ struct PathSource {
     path: PathBuf,
     display_name: String,
     file_size: u64,
+    max_input_bytes: Option<u64>,
+    modified: Option<std::time::SystemTime>,
 }
 
 impl PathSource {
-    fn open(
+    fn bounded(
         path: impl Into<PathBuf>,
         display_name: Option<String>,
+        max_input_bytes: Option<u64>,
     ) -> deckprobe_core::Result<Self> {
         let path = path.into();
         let metadata = std::fs::metadata(&path)?;
+        if max_input_bytes.is_some_and(|cap| metadata.len() > cap) {
+            return Err(DeckProbeError::BudgetExceeded(
+                "source exceeds max-input-bytes".into(),
+            ));
+        }
         if !metadata.is_file() {
             return Err(DeckProbeError::InvalidRequest(format!(
                 "input is not a regular file: {}",
@@ -661,6 +706,8 @@ impl PathSource {
             path,
             display_name,
             file_size: metadata.len(),
+            max_input_bytes,
+            modified: metadata.modified().ok(),
         })
     }
 }
@@ -679,7 +726,46 @@ impl ProbeSource for PathSource {
     }
 
     fn open(&self) -> deckprobe_core::Result<BoxedProbeReader> {
-        Ok(Box::new(File::open(&self.path)?))
+        let file = File::open(&self.path)?;
+        if self.max_input_bytes.is_some() {
+            let metadata = file.metadata()?;
+            if !metadata.is_file()
+                || metadata.len() != self.file_size
+                || metadata.modified().ok() != self.modified
+            {
+                return Err(DeckProbeError::Io(std::io::Error::other(
+                    "source changed during probe",
+                )));
+            }
+            return Ok(Box::new(CheckedFile {
+                file,
+                size: self.file_size,
+                modified: self.modified,
+            }));
+        }
+        Ok(Box::new(file))
+    }
+}
+
+struct CheckedFile {
+    file: File,
+    size: u64,
+    modified: Option<std::time::SystemTime>,
+}
+impl Read for CheckedFile {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let meta = self.file.metadata()?;
+        if meta.len() != self.size || meta.modified().ok() != self.modified {
+            return Err(std::io::Error::other("source changed during probe"));
+        }
+        let position = self.file.stream_position()?;
+        let len = buf.len().min(self.size.saturating_sub(position) as usize);
+        self.file.read(&mut buf[..len])
+    }
+}
+impl Seek for CheckedFile {
+    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+        self.file.seek(pos)
     }
 }
 

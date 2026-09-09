@@ -2,7 +2,23 @@
 
 All notable changes to DeckProbe are documented here.
 
+## [2.6.0] - 2026-09-09
+
+### Added
+
+- Node `probeFile(path, options, runtime)` with a 2500 ms default host deadline,
+  same-version native selection, WASM Worker fallback, cancellation, bounded input/output,
+  concurrency limits and independent host metrics. Existing two-argument calls are unchanged.
+- CLI `--max-input-bytes` for paths, stdin and JSONL sources.
+- Exact `powerpoint.smartart_data_part_count` inventory using existing Content Types/ZIP indexes.
+- Native/WASM parity, input cap, cancellation/deadline and semantic SmartArt regression checks.
+
 ## [Unreleased]
+
+### Changed
+
+- Keep the npm package lightweight by omitting source maps and TypeScript source
+  files from published tarballs, with a packaging regression check.
 
 ## [2.5.0] - 2026-09-03
 

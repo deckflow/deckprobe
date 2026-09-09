@@ -419,6 +419,33 @@ impl<R: Read + Seek> OoxmlSession<R> {
         Ok(parts)
     }
 
+    pub fn unique_content_type_part_count(
+        &mut self,
+        context: &ProbeContext,
+        content_type: &str,
+    ) -> Result<usize> {
+        if self.content_types_cache.is_none() {
+            self.part_content_types(context)?;
+        }
+        let types = self
+            .content_types_cache
+            .as_ref()
+            .expect("content types loaded");
+        let mut found = BTreeSet::new();
+        for name in &self.entry_names {
+            context.check_time()?;
+            let name = name.trim_start_matches('/').to_ascii_lowercase();
+            let effective = types.overrides.get(&name).or_else(|| {
+                name.rsplit_once('.')
+                    .and_then(|(_, ext)| types.defaults.get(ext))
+            });
+            if effective.is_some_and(|value| value.eq_ignore_ascii_case(content_type)) {
+                found.insert(name);
+            }
+        }
+        Ok(found.len())
+    }
+
     pub fn unique_image_asset_part_count(
         &mut self,
         context: &ProbeContext,

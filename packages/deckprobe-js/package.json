@@ -1,6 +1,6 @@
 {
   "name": "@deckflow/deckprobe",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "CLI and browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe",
   "type": "module",
   "license": "Apache-2.0",
@@ -33,7 +33,6 @@
   "files": [
     "bin",
     "dist",
-    "src",
     "wasm",
     "README.md",
     "LICENSE",
@@ -47,12 +46,12 @@
     "clean": "rm -rf dist wasm/deckprobe_wasm.js wasm/deckprobe_wasm_bg.wasm wasm/package.json",
     "build:wasm": "wasm-pack build ../../crates/deckprobe-wasm --target web --release --out-dir ../../packages/deckprobe-js/wasm --out-name deckprobe_wasm --no-pack --no-opt && rm -f ../../packages/deckprobe-js/wasm/.gitignore",
     "build:ts": "tsc -p tsconfig.json",
-    "build": "npm run build:wasm && npm run build:ts",
+    "build": "npm run clean && npm run build:wasm && npm run build:ts",
     "check": "tsc -p tsconfig.json --noEmit",
     "check:version": "node ./scripts/check-version.mjs",
     "check:wasm": "node ./scripts/check-wasm.mjs",
     "check:pack": "node ./scripts/check-pack.mjs",
-    "test": "npm run check && npm run check:version && npm run check:wasm && npm run check:pack && npm run test:iwork && npm run test:browser && npm run test:vite && npm run test:node && npm run test:cli",
+    "test": "npm run check && npm run check:version && npm run check:wasm && npm run check:pack && npm run test:iwork && npm run test:browser && npm run test:vite && npm run test:node && npm run test:cli && npm run test:bounded",
     "test:public": "npm run check && npm run check:version && npm run check:wasm && npm run check:pack && npm run test:iwork && npm run test:browser && npm run test:vite",
     "test:iwork": "node ./scripts/iwork-smoke.mjs",
     "test:browser": "node ./scripts/browser-smoke.mjs",
@@ -60,16 +59,17 @@
     "test:node": "node ./scripts/node-smoke.mjs",
     "test:cli": "node ./scripts/cli-smoke.mjs",
     "build:platforms": "node ./scripts/build-platform-packages.mjs",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build && npm test",
+    "test:bounded": "node ./scripts/bounded-smoke.mjs"
   },
   "optionalDependencies": {
-    "@deckflow/deckprobe-darwin-arm64": "2.5.0",
-    "@deckflow/deckprobe-darwin-x64": "2.5.0",
-    "@deckflow/deckprobe-linux-arm64-gnu": "2.5.0",
-    "@deckflow/deckprobe-linux-arm64-musl": "2.5.0",
-    "@deckflow/deckprobe-linux-x64-gnu": "2.5.0",
-    "@deckflow/deckprobe-linux-x64-musl": "2.5.0",
-    "@deckflow/deckprobe-win32-x64-msvc": "2.5.0"
+    "@deckflow/deckprobe-darwin-arm64": "2.6.0",
+    "@deckflow/deckprobe-darwin-x64": "2.6.0",
+    "@deckflow/deckprobe-linux-arm64-gnu": "2.6.0",
+    "@deckflow/deckprobe-linux-arm64-musl": "2.6.0",
+    "@deckflow/deckprobe-linux-x64-gnu": "2.6.0",
+    "@deckflow/deckprobe-linux-x64-musl": "2.6.0",
+    "@deckflow/deckprobe-win32-x64-msvc": "2.6.0"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

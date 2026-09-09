@@ -23,6 +23,10 @@ const required = [
   "bin/deckprobe.js",
   "dist/index.js",
   "dist/index.node.js",
+  "dist/node-runner.js",
+  "dist/node-worker.js",
+  "dist/node-options.js",
+  "bin/platforms.js",
   "dist/worker.js",
   "wasm/deckprobe_wasm.js",
   "wasm/deckprobe_wasm_bg.wasm",
@@ -31,6 +35,11 @@ const required = [
 for (const path of required) {
   assert.ok(files.has(path), `packed tarball is missing ${path}`);
   assert.ok(files.get(path) > 0, `packed tarball contains an empty ${path}`);
+}
+
+for (const path of files.keys()) {
+  assert.ok(!path.endsWith(".map"), `packed tarball contains source map ${path}`);
+  assert.ok(!path.startsWith("src/"), `packed tarball contains TypeScript source ${path}`);
 }
 
 // Keep the standalone package's notices identical to the repository originals.
@@ -44,5 +53,6 @@ for (const path of ["LICENSE", "NOTICE"]) {
 
 console.log(
   `Packed artifact is complete: ${packed.filename} ` +
-    `(${packed.entryCount} files, ${required.length} required artifacts verified)`,
+    `(${packed.entryCount} files, ${required.length} required artifacts verified, ` +
+    `no source maps or TypeScript sources)`,
 );

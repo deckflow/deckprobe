@@ -10,6 +10,9 @@ import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { probe } from "./index.js";
+import { boundedProbeFile } from "./node-runner.js";
+import type { ProbeRuntimeOptions } from "./node-options.js";
+export type { ProbeRuntimeOptions, ProbeRuntimeMetrics } from "./node-options.js";
 import { configureRuntime } from "./runtime.js";
 
 import type { ProbeCallOptions, ProbeResult } from "./types.js";
@@ -38,7 +41,9 @@ export const deckProbeWasmPath: string = wasmPath;
 export async function probeFile(
   path: string,
   options: ProbeCallOptions = {},
+  runtime?: ProbeRuntimeOptions,
 ): Promise<ProbeResult> {
+  if (runtime !== undefined) return boundedProbeFile(path, options, runtime);
   const bytes = readFileSync(path);
   return probe(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), {
     ...options,

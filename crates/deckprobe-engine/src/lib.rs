@@ -614,6 +614,7 @@ fn is_asset_target(target: &str) -> bool {
         "media",
         "font",
         "attachment",
+        "smartart",
         "embedded",
     ]
     .iter()

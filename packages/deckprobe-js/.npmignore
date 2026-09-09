@@ -3,6 +3,7 @@
 # so the WASM artifacts listed in "files" are actually packed.
 node_modules/
 benchmark/
+*.map
 # Generated platform packages are published separately, never nested here.
 npm/
 scripts/serve-benchmark.mjs

@@ -44,3 +44,6 @@ console.log(
   `DeckProbe package versions agree: ${packageJson.version} ` +
     `(${declared.length} platform packages pinned)`,
 );
+
+const nodeRuntimeSource = readFileSync(resolve(packageDirectory, 'src/node-options.ts'), 'utf8');
+assert.ok(nodeRuntimeSource.includes(`NODE_PACKAGE_VERSION = "${packageJson.version}"`), 'Node runtime error-envelope version must match the package');

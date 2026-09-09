@@ -90,6 +90,13 @@ impl PowerPointDriver {
                 Metadata,
             ),
             TargetSpec::new(
+                "powerpoint.smartart_data_part_count",
+                "Unique declared and present SmartArt data parts (not visible instances)",
+                "u64",
+                Format,
+                Metadata,
+            ),
+            TargetSpec::new(
                 "powerpoint.chart_part_count",
                 "Unique PowerPoint chart XML part count (not chart instance count)",
                 "u64",
@@ -262,6 +269,7 @@ impl FormatDriver for PowerPointDriver {
             PathDescriptor::new(
                 "powerpoint.asset_inventory",
                 &[
+                    "powerpoint.smartart_data_part_count",
                     "powerpoint.chart_part_count",
                     "powerpoint.unique_image_asset_count",
                     "powerpoint.unique_media_asset_count",
@@ -388,6 +396,9 @@ impl FormatDriver for PowerPointDriver {
                     ]);
                 }
                 "powerpoint.asset_inventory" => {
+                    let smartart_count = session.as_mut().expect("package session")
+                        .unique_content_type_part_count(context,
+                            "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml")?;
                     let image_count = session
                         .as_mut()
                         .expect("package session")
@@ -398,6 +409,13 @@ impl FormatDriver for PowerPointDriver {
                         .unique_media_asset_part_count(context, "ppt/media/")?;
                     let names = session.as_ref().expect("package session").entry_names();
                     output.extend([
+                        Evidence::resolved(
+                            "powerpoint.smartart_data_part_count",
+                            json!(smartart_count),
+                            Confidence::Exact,
+                            path,
+                            "declared and present unique SmartArt data parts",
+                        ),
                         Evidence::resolved(
                             "powerpoint.chart_part_count",
                             json!(count_unique_parts(names, "ppt/charts/chart", ".xml")),
