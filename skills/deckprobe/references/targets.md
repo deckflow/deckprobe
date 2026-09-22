@@ -89,7 +89,10 @@ Format options: `pdf.repair_xref` (`safe` default, or `none`) and `pdf.max_objec
 `unique_image_asset_count`, `comment_part_count` — all `metadata`. `table_count` is `deep`.
 
 Counts come from the package's own statistics, so `page_count` reflects what the authoring
-application last recorded, not a re-layout.
+application last recorded, not a re-layout. A missing saved statistic is a resolved `null`, not
+evidence of corruption. DeckProbe never guesses `page_count`; exact pagination needs a compatible
+layout engine. At `deep`, `word_count` and `character_count` can fall back to medium-confidence
+estimates from visible `word/document.xml` text when their per-target confidence allows `medium`.
 
 ### Excel (xlsx, xlsm, xltx, xltm, xlsb)
 

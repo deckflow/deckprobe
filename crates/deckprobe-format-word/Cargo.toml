@@ -9,5 +9,5 @@ rust-version.workspace = true
 [dependencies]
 deckprobe-core = { path = "../deckprobe-core" }
 deckprobe-format-ooxml = { path = "../deckprobe-format-ooxml" }
+quick-xml.workspace = true
 serde_json.workspace = true
-

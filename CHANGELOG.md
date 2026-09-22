@@ -2,6 +2,24 @@
 
 All notable changes to DeckProbe are documented here.
 
+## [Unreleased]
+
+## [2.7.0] - 2026-09-22
+
+### Added
+
+- JSONL error envelopes now echo the input record's original `path` and optional
+  caller-provided `id` for reliable batch attribution.
+- Word deep probes can estimate missing word and character statistics from
+  `word/document.xml` when those targets explicitly accept medium confidence.
+
+### Changed
+
+- Keep the npm package lightweight by omitting source maps and TypeScript source
+  files from published tarballs, with a packaging regression check.
+- Report absent optional Word saved statistics as resolved `null` values with a
+  `MISSING_OPTIONAL_STATISTIC` diagnostic; page counts remain unestimated.
+
 ## [2.6.0] - 2026-09-09
 
 ### Added
@@ -12,13 +30,6 @@ All notable changes to DeckProbe are documented here.
 - CLI `--max-input-bytes` for paths, stdin and JSONL sources.
 - Exact `powerpoint.smartart_data_part_count` inventory using existing Content Types/ZIP indexes.
 - Native/WASM parity, input cap, cancellation/deadline and semantic SmartArt regression checks.
-
-## [Unreleased]
-
-### Changed
-
-- Keep the npm package lightweight by omitting source maps and TypeScript source
-  files from published tarballs, with a packaging regression check.
 
 ## [2.5.0] - 2026-09-03
 

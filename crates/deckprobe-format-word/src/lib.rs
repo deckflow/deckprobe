@@ -11,6 +11,7 @@ use deckprobe_format_ooxml::{
     identity_path_evidence, inventory_targets, office_target_specs, package_security_targets,
     readability_security_targets, run_common_path,
 };
+use quick_xml::{Reader, events::Event};
 use serde_json::json;
 
 pub struct WordDriver {
@@ -35,14 +36,14 @@ impl WordDriver {
             ),
             TargetSpec::new(
                 "word.word_count",
-                "Last saved word count",
+                "Last saved word count, or a medium-confidence deep visible-text estimate",
                 "u64|null",
                 Format,
                 Metadata,
             ),
             TargetSpec::new(
                 "word.character_count",
-                "Last saved character count",
+                "Last saved character count, or a medium-confidence deep visible-text estimate",
                 "u64|null",
                 Format,
                 Metadata,
@@ -113,7 +114,7 @@ impl FormatDriver for WordDriver {
     fn options(&self) -> Vec<OptionSpec> {
         vec![OptionSpec {
             key: "word.statistics_path".to_owned(),
-            description: "Choose fast saved properties or exact document XML where available"
+            description: "Choose fast saved properties or document XML fallbacks where available"
                 .to_owned(),
             value_type: "enum".to_owned(),
             default: "auto".to_owned(),
@@ -224,6 +225,15 @@ impl FormatDriver for WordDriver {
             ),
         ];
         if matches!(Self::stats_path(request), "auto" | "app-properties") {
+            let may_read_document_xml = Self::stats_path(request) == "auto"
+                && request.level >= ProbeLevel::Deep
+                && (["word.word_count", "word.character_count"]
+                    .iter()
+                    .any(|target| {
+                        request.targets.contains(*target)
+                            && request.minimum_confidence_for(target) <= Confidence::Medium
+                    })
+                    || request.targets.contains("word.paragraph_count"));
             paths.push(PathDescriptor::new(
                 "word.app_statistics",
                 &[
@@ -234,7 +244,16 @@ impl FormatDriver for WordDriver {
                 ],
                 ProbeLevel::Metadata,
                 Confidence::High,
-                8,
+                if may_read_document_xml { 48 } else { 8 },
+            ));
+        }
+        if Self::stats_path(request) == "document-xml" {
+            paths.push(PathDescriptor::new(
+                "word.document_text_statistics",
+                &["word.word_count", "word.character_count"],
+                ProbeLevel::Deep,
+                Confidence::Medium,
+                40,
             ));
         }
         if matches!(Self::stats_path(request), "auto" | "document-xml") {
@@ -268,7 +287,7 @@ impl FormatDriver for WordDriver {
     fn execute(
         &self,
         context: &mut ProbeContext,
-        _request: &ProbeRequest,
+        request: &ProbeRequest,
         plan: &ExecutionPlan,
     ) -> Result<Vec<Evidence>> {
         let mut session = Some(OoxmlSession::open(context)?);
@@ -335,14 +354,87 @@ impl FormatDriver for WordDriver {
                         .read_text(context, "docProps/app.xml")?
                         .map(|xml| element_text_map(&xml))
                         .unwrap_or_default();
+                    let wants_document_fallback = Self::stats_path(request) == "auto"
+                        && request.level >= ProbeLevel::Deep
+                        && [
+                            ("word.word_count", "words", Confidence::Medium),
+                            ("word.character_count", "characters", Confidence::Medium),
+                            ("word.paragraph_count", "paragraphs", Confidence::Exact),
+                        ]
+                        .iter()
+                        .any(|(target, property, confidence)| {
+                            request.targets.contains(*target)
+                                && request.minimum_confidence_for(target) <= *confidence
+                                && !properties.contains_key(*property)
+                        });
+                    let text_statistics = if wants_document_fallback {
+                        let xml = session
+                            .as_mut()
+                            .expect("package session")
+                            .read_text(context, "word/document.xml")?
+                            .ok_or_else(|| {
+                                DeckProbeError::MalformedInput(
+                                    "missing word/document.xml".to_owned(),
+                                )
+                            })?;
+                        Some(document_text_statistics(&xml)?)
+                    } else {
+                        None
+                    };
                     for (target, property) in [
                         ("word.page_count", "pages"),
                         ("word.word_count", "words"),
                         ("word.character_count", "characters"),
                         ("word.paragraph_count", "paragraphs"),
                     ] {
-                        output.push(numeric_property(target, properties.get(property), path));
+                        let fallback =
+                            text_statistics
+                                .as_ref()
+                                .and_then(|statistics| match target {
+                                    "word.word_count" => {
+                                        Some((statistics.word_count, Confidence::Medium))
+                                    }
+                                    "word.character_count" => {
+                                        Some((statistics.character_count, Confidence::Medium))
+                                    }
+                                    "word.paragraph_count" => {
+                                        Some((statistics.paragraph_count, Confidence::Exact))
+                                    }
+                                    _ => None,
+                                });
+                        output.push(numeric_property(
+                            target,
+                            properties.get(property),
+                            fallback,
+                            path,
+                        ));
                     }
+                }
+                "word.document_text_statistics" => {
+                    let xml = session
+                        .as_mut()
+                        .expect("package session")
+                        .read_text(context, "word/document.xml")?
+                        .ok_or_else(|| {
+                            DeckProbeError::MalformedInput("missing word/document.xml".to_owned())
+                        })?;
+                    let statistics = document_text_statistics(&xml)?;
+                    output.extend([
+                        Evidence::resolved(
+                            "word.word_count",
+                            json!(statistics.word_count),
+                            Confidence::Medium,
+                            path,
+                            "estimated from visible text in word/document.xml",
+                        ),
+                        Evidence::resolved(
+                            "word.character_count",
+                            json!(statistics.character_count),
+                            Confidence::Medium,
+                            path,
+                            "estimated non-whitespace characters in word/document.xml",
+                        ),
+                    ]);
                 }
                 "word.document_structure" => {
                     let xml = session
@@ -378,15 +470,170 @@ impl FormatDriver for WordDriver {
     }
 }
 
-fn numeric_property(target: &str, value: Option<&String>, path: &str) -> Evidence {
-    match value.and_then(|value| value.parse::<u64>().ok()) {
-        Some(value) => Evidence::resolved(
+fn numeric_property(
+    target: &str,
+    value: Option<&String>,
+    fallback: Option<(u64, Confidence)>,
+    path: &str,
+) -> Evidence {
+    match value {
+        Some(value) => match value.parse::<u64>() {
+            Ok(value) => Evidence::resolved(
+                target,
+                json!(value),
+                Confidence::High,
+                path,
+                "docProps/app.xml saved statistic",
+            ),
+            Err(_) => {
+                let mut evidence =
+                    Evidence::unresolved(target, deckprobe_core::TargetStatus::Invalid, path);
+                evidence.source = "docProps/app.xml contains an invalid saved statistic".to_owned();
+                evidence
+            }
+        },
+        None if fallback.is_some() => {
+            let (value, confidence) = fallback.expect("checked above");
+            let source = match target {
+                "word.word_count" => "estimated from visible text in word/document.xml",
+                "word.character_count" => {
+                    "estimated non-whitespace characters in word/document.xml"
+                }
+                "word.paragraph_count" => "paragraph elements in word/document.xml",
+                _ => "word/document.xml fallback",
+            };
+            Evidence::resolved(target, json!(value), confidence, path, source)
+        }
+        None => Evidence::resolved(
             target,
-            json!(value),
+            serde_json::Value::Null,
             Confidence::High,
             path,
-            "docProps/app.xml saved statistic",
+            "optional saved statistic is absent from docProps/app.xml",
         ),
-        None => Evidence::unresolved(target, deckprobe_core::TargetStatus::Unknown, path),
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct DocumentTextStatistics {
+    word_count: u64,
+    character_count: u64,
+    paragraph_count: u64,
+}
+
+fn document_text_statistics(xml: &str) -> Result<DocumentTextStatistics> {
+    let mut reader = Reader::from_str(xml);
+    let mut statistics = DocumentTextStatistics::default();
+    let mut paragraph_text = String::new();
+    let mut text_depth = 0_u32;
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(event)) => match xml_local_name(event.name().as_ref()) {
+                b"p" => {
+                    paragraph_text.clear();
+                    statistics.paragraph_count += 1;
+                }
+                b"t" => text_depth += 1,
+                _ => {}
+            },
+            Ok(Event::Empty(event)) if xml_local_name(event.name().as_ref()) == b"p" => {
+                statistics.paragraph_count += 1;
+            }
+            Ok(Event::Text(event)) if text_depth > 0 => {
+                let decoded = event.decode().map_err(|error| {
+                    DeckProbeError::MalformedInput(format!(
+                        "word/document.xml contains invalid text: {error}"
+                    ))
+                })?;
+                let text = quick_xml::escape::unescape(&decoded).map_err(|error| {
+                    DeckProbeError::MalformedInput(format!(
+                        "word/document.xml contains invalid escaped text: {error}"
+                    ))
+                })?;
+                statistics.character_count += text
+                    .chars()
+                    .filter(|character| !character.is_whitespace())
+                    .count() as u64;
+                paragraph_text.push_str(&text);
+            }
+            Ok(Event::End(event)) => match xml_local_name(event.name().as_ref()) {
+                b"t" => text_depth = text_depth.saturating_sub(1),
+                b"p" => statistics.word_count += estimated_word_count(&paragraph_text),
+                _ => {}
+            },
+            Ok(Event::Eof) => break,
+            Err(error) => {
+                return Err(DeckProbeError::MalformedInput(format!(
+                    "word/document.xml is not valid XML: {error}"
+                )));
+            }
+            _ => {}
+        }
+    }
+    Ok(statistics)
+}
+
+fn xml_local_name(name: &[u8]) -> &[u8] {
+    name.rsplit(|value| *value == b':').next().unwrap_or(name)
+}
+
+fn estimated_word_count(text: &str) -> u64 {
+    let mut count = 0;
+    let mut in_word = false;
+    for character in text.chars() {
+        if is_east_asian_word_character(character) {
+            if in_word {
+                count += 1;
+                in_word = false;
+            }
+            count += 1;
+        } else if character.is_alphanumeric() {
+            in_word = true;
+        } else if in_word {
+            count += 1;
+            in_word = false;
+        }
+    }
+    count + u64::from(in_word)
+}
+
+fn is_east_asian_word_character(character: char) -> bool {
+    matches!(
+        character as u32,
+        0x3400..=0x4dbf
+            | 0x4e00..=0x9fff
+            | 0x3040..=0x30ff
+            | 0xac00..=0xd7af
+            | 0xf900..=0xfaff
+            | 0x20000..=0x2ffff
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn document_text_statistics_join_runs_and_handle_east_asian_text() {
+        let xml = r#"<w:document xmlns:w="urn:test"><w:body>
+            <w:p><w:r><w:t>Hello </w:t></w:r><w:r><w:t>world</w:t></w:r></w:p>
+            <w:p><w:r><w:t>台灣 AI</w:t></w:r></w:p>
+        </w:body></w:document>"#;
+        assert_eq!(
+            document_text_statistics(xml).unwrap(),
+            DocumentTextStatistics {
+                word_count: 5,
+                character_count: 14,
+                paragraph_count: 2,
+            }
+        );
+    }
+
+    #[test]
+    fn missing_saved_statistic_is_a_resolved_null() {
+        let evidence = numeric_property("word.page_count", None, None, "word.app_statistics");
+        assert_eq!(evidence.status, deckprobe_core::TargetStatus::Resolved);
+        assert_eq!(evidence.value, Some(serde_json::Value::Null));
     }
 }

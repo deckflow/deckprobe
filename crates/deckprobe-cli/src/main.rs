@@ -57,7 +57,7 @@ struct Cli {
         long,
         conflicts_with_all = ["input", "pretty", "stdin_name"],
         help_heading = "Input interpretation",
-        long_help = "Read JSONL records from stdin. Each non-empty line is either a JSON string containing a local path, an object {\"path\":\"...\"}, or an object {\"name\":\"report.pdf\",\"data_base64\":\"...\"}. Output is always compact JSONL and processing continues after a per-record error."
+        long_help = "Read JSONL records from stdin. Each non-empty line is either a JSON string containing a local path, an object {\"path\":\"...\"}, or an object {\"name\":\"report.pdf\",\"data_base64\":\"...\"}. Object records may include a caller-defined \"id\", which is echoed with the original path on errors. Output is always compact JSONL and processing continues after a per-record error."
     )]
     jsonl: bool,
 
@@ -561,11 +561,37 @@ fn read_stdin_document(options: &ProbeOptions) -> deckprobe_core::Result<Vec<u8>
 enum JsonlInput {
     Path(String),
     Record {
+        id: Option<serde_json::Value>,
         path: Option<PathBuf>,
         name: Option<String>,
         #[serde(alias = "base64")]
         data_base64: Option<String>,
     },
+}
+
+#[derive(Debug, Default, Serialize)]
+struct JsonlInputContext {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    path: Option<String>,
+}
+
+impl JsonlInput {
+    fn context(&self) -> JsonlInputContext {
+        match self {
+            Self::Path(path) => JsonlInputContext {
+                id: None,
+                path: Some(path.clone()),
+            },
+            Self::Record { id, path, .. } => JsonlInputContext {
+                id: id.clone(),
+                path: path
+                    .as_ref()
+                    .map(|value| value.to_string_lossy().into_owned()),
+            },
+        }
+    }
 }
 
 fn run_jsonl(cli: &Cli, options: &ProbeOptions) -> deckprobe_core::Result<u8> {
@@ -577,12 +603,11 @@ fn run_jsonl(cli: &Cli, options: &ProbeOptions) -> deckprobe_core::Result<u8> {
         if line.trim().is_empty() {
             continue;
         }
-        let outcome = serde_json::from_str::<JsonlInput>(&line)
-            .map_err(|error| {
-                DeckProbeError::InvalidRequest(format!(
-                    "JSONL line {line_number} is invalid: {error}"
-                ))
-            })
+        let parsed = serde_json::from_str::<JsonlInput>(&line).map_err(|error| {
+            DeckProbeError::InvalidRequest(format!("JSONL line {line_number} is invalid: {error}"))
+        });
+        let context = parsed.as_ref().ok().map(JsonlInput::context);
+        let outcome = parsed
             .and_then(|input| jsonl_source(input, options, cli.max_input_bytes))
             .and_then(|source| probe(source, options.clone()));
         match outcome {
@@ -601,7 +626,17 @@ fn run_jsonl(cli: &Cli, options: &ProbeOptions) -> deckprobe_core::Result<u8> {
             }
             Err(error) => {
                 exit_code = exit_code.max(error_exit_code(&error));
-                write_json(&error_report(&error), false)?;
+                let mut report = error_report(&error);
+                if let Some(context) =
+                    context.filter(|value| value.id.is_some() || value.path.is_some())
+                {
+                    report["input"] = serde_json::to_value(context).map_err(|error| {
+                        DeckProbeError::Parser(format!(
+                            "cannot serialize JSONL input context: {error}"
+                        ))
+                    })?;
+                }
+                write_json(&report, false)?;
             }
         }
     }
@@ -620,6 +655,7 @@ fn jsonl_source(
             max_input_bytes,
         )?)),
         JsonlInput::Record {
+            id: _,
             path: Some(path),
             name,
             data_base64: None,
@@ -629,6 +665,7 @@ fn jsonl_source(
             max_input_bytes,
         )?)),
         JsonlInput::Record {
+            id: _,
             path: None,
             name: Some(name),
             data_base64: Some(data),

@@ -145,6 +145,7 @@ The report uses `source_kind: "stdin"`.
 ```json
 "/absolute/or/relative/report.pdf"
 {"path":"report.pdf"}
+{"id":"record-42","path":"report.pdf"}
 {"name":"upload.pdf","data_base64":"JVBERi0xLjcK"}
 ```
 
@@ -153,7 +154,9 @@ requires both `name` and `data_base64`; `base64` is accepted as an alias.
 Global target, confidence, format-option, budget, strict, plan, and view options
 apply to every record. Pretty output conflicts with JSONL because each output
 must remain on one line. Record errors are emitted in place and later records
-continue; the process exits with the highest record exit status.
+continue; the process exits with the highest record exit status. When a valid
+record fails, its error envelope echoes the original `path` and optional `id`
+under `input`, so callers do not have to infer attribution from line order.
 
 ## Selecting targets
 
@@ -318,6 +321,18 @@ answer — from `status: "unknown"`, where the probe could not answer.
 
 Use `--strict` when an unresolved target must fail the command; it exits `5` and still writes the
 full report.
+
+For Word files, missing saved statistics are returned as resolved `null` values
+with a `MISSING_OPTIONAL_STATISTIC` diagnostic. This is different from a damaged
+package. `word.page_count` is never inferred from XML because exact pagination
+requires a Word-compatible layout engine. At `deep` level, callers that accept
+medium confidence can opt into a bounded `word/document.xml` fallback for word
+and non-whitespace character counts:
+
+```bash
+deckprobe -l deep -t word_count,character_count,paragraph_count,table_count \
+  -C word_count=medium -C character_count=medium report.docx
+```
 
 ## Input interpretation and format options
 

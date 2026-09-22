@@ -90,12 +90,13 @@ target — listed in `execution.unresolved_targets` — is the "probe could not 
 
 **Inventory a directory**
 ```bash
-find . -type f \( -name '*.pdf' -o -name '*.pptx' -o -name '*.docx' \) \
+find . -type f ! -name '~$*' \( -name '*.pdf' -o -name '*.pptx' -o -name '*.docx' \) \
   | python3 -c 'import sys,json; [print(json.dumps({"path":l.strip()})) for l in sys.stdin]' \
   | deckprobe --jsonl -t @summary
 ```
 One compact JSON per line. Per-record errors do not stop the run; the process exits with the highest
-per-record status.
+per-record status. The shell performs discovery here, so it also excludes Office `~$` lock files;
+DeckProbe itself only receives the paths emitted by `find`.
 
 **Same thing, values only, easy to aggregate**
 ```bash

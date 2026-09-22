@@ -133,6 +133,11 @@ export interface ErrorReport {
   schema_version: 2;
   tool_version: string;
   status: "error";
+  /** Present on JSONL record failures when the original record supplied these fields. */
+  input?: {
+    id?: unknown;
+    path?: string;
+  };
   error: {
     code: string;
     message: string;

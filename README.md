@@ -190,9 +190,12 @@ compact schema-v2 result for each non-empty input line:
 
 ```sh
 printf '%s\n' \
-  '{"path":"report.pdf"}' \
-  '{"path":"deck.pptx"}' | deckprobe --jsonl -t @summary
+  '{"id":"report","path":"report.pdf"}' \
+  '{"id":"deck","path":"deck.pptx"}' | deckprobe --jsonl -t @summary
 ```
+
+When a valid JSONL record fails, the error envelope echoes its optional `id`
+and original `path` under `input`.
 
 ## Use from a coding agent
 
@@ -462,7 +465,7 @@ path; request those explicitly or through `@structure`.
 | Driver | Profiles | Current inspection depth |
 |---|---|---|
 | PDF | `.pdf` | Header and Info metadata, page/object counts, xref type, signatures, links, attachments, JavaScript, forms, annotations, and XMP presence. |
-| Word | `.docx`, `.docm`, `.dotx`, `.dotm` | OPC metadata, saved statistics, exact paragraph/table structure, security signals, comments, and image assets. |
+| Word | `.docx`, `.docm`, `.dotx`, `.dotm` | OPC metadata, saved statistics, opt-in medium-confidence deep text estimates, exact paragraph/table structure, security signals, comments, and image assets. |
 | Excel | `.xlsx`, `.xlsm`, `.xltx`, `.xltm`, `.xlsb` | OPC metadata, worksheets/names/visibility, shared strings, tables, charts, pivots, security signals, and image assets; XLSB identity only. |
 | PowerPoint | `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx`, `.potm` | OPC metadata, slides/hidden slides, masters/layouts/notes, slide size, security signals, charts, comments, images, and media. |
 | Legacy Office | `.doc`, `.dot`, `.xls`, `.xlt`, `.ppt`, `.pps`, `.pot` | Validated CFB main streams, SummaryInformation metadata, macros, embedded-object signals, and core Word/Excel/PowerPoint statistics. |

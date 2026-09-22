@@ -162,7 +162,9 @@ printf '%s\n' '{"path":"a.pdf"}' '{"path":"b.pptx"}' | deckprobe --jsonl -t @sum
 
 One compact JSON per non-empty input line. A per-record error does not stop the run; the process
 exits with the highest per-record status. Each record is a JSON string path, `{"path":"..."}`, or
-`{"name":"report.pdf","data_base64":"..."}`.
+`{"name":"report.pdf","data_base64":"..."}`. Add an `id` to an object record when the caller
+needs stable attribution; JSONL error envelopes echo that `id` and the original `path` under
+`input`.
 
 For bytes on stdin, `-n` supplies the logical filename that selects the format:
 

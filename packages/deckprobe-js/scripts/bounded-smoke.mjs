@@ -16,7 +16,7 @@ try {
   mkdirSync(installed, { recursive: true });
   for (const name of ["dist", "wasm", "bin", "package.json"]) cpSync(join(pkg, name), join(installed, name), { recursive: true });
   const { probeFile, version } = await import(pathToFileURL(join(installed, "dist/index.node.js")));
-  assert.equal(await version(), "2.6.0");
+  assert.equal(await version(), "2.7.0");
   const file = join(root, "tests/fixtures/local/powerpoint-basic.pptx");
   const opts = { targets: ["powerpoint.slide_count", "powerpoint.smartart_data_part_count"], targetConfidence: { "powerpoint.slide_count": "exact" }, formatOptions: { "powerpoint.slide_count_path": "presentation-xml" } };
   let result = await probeFile(file, opts, {});
@@ -38,7 +38,7 @@ try {
   assert.ok(platform);
   const nativeDir = join(temp, "node_modules", packageName(platform));
   mkdirSync(join(nativeDir, "bin"), { recursive: true });
-  writeFileSync(join(nativeDir, "package.json"), JSON.stringify({ name: packageName(platform), version: "2.6.0" }));
+  writeFileSync(join(nativeDir, "package.json"), JSON.stringify({ name: packageName(platform), version: "2.7.0" }));
   cpSync(join(root, "target/release/deckprobe"), join(nativeDir, "bin", binaryName(platform)));
   const native = await probeFile(file, opts, { backend: "native" });
   const wasm = await probeFile(file, opts, { backend: "wasm-worker" });

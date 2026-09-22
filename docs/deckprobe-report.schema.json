@@ -139,6 +139,9 @@
             "status": {
               "const": "error"
             },
+            "input": {
+              "$ref": "#/$defs/errorInput"
+            },
             "error": {
               "type": "object",
               "required": [
@@ -174,6 +177,17 @@
           "additionalProperties": false
         }
       ]
+    },
+    "errorInput": {
+      "type": "object",
+      "properties": {
+        "id": true,
+        "path": {
+          "type": "string"
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
     },
     "valuesReport": {
       "allOf": [

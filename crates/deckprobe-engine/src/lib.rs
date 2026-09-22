@@ -779,6 +779,27 @@ fn merge_results(
             message: format!("no path satisfies {target} at requested level/confidence"),
         })
         .collect::<Vec<_>>();
+    diagnostics.extend(
+        results
+            .iter()
+            .filter(|(_, result)| {
+                result.path == "word.app_statistics"
+                    && result.status == TargetStatus::Resolved
+                    && result.value.as_ref().is_some_and(Value::is_null)
+            })
+            .map(|(target, _)| Diagnostic {
+            level: "info".to_owned(),
+            code: "MISSING_OPTIONAL_STATISTIC".to_owned(),
+            message: if target == "word.page_count" {
+                "word.page_count is not recorded in docProps/app.xml; exact pagination requires a Word-compatible layout engine"
+                    .to_owned()
+            } else {
+                format!(
+                    "{target} is not recorded in docProps/app.xml; the document is still structurally valid"
+                )
+            },
+            }),
+    );
     if !plan_only {
         for (target, result) in results
             .iter()
@@ -802,6 +823,16 @@ fn merge_results(
                             result.confidence, minimum_confidence
                         )
                         .to_ascii_lowercase(),
+                    });
+                } else if result.status == TargetStatus::Invalid
+                    && result.path == "word.app_statistics"
+                {
+                    diagnostics.push(Diagnostic {
+                        level: "warning".to_owned(),
+                        code: "INVALID_OPTIONAL_STATISTIC".to_owned(),
+                        message: format!(
+                            "{target} is present in docProps/app.xml but is not a valid non-negative integer"
+                        ),
                     });
                 } else {
                     diagnostics.push(Diagnostic {

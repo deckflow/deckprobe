@@ -113,6 +113,7 @@ Note the shape difference: `unresolved_targets` is **top-level** here, not under
   "schema_version": 2,
   "tool_version": "2.3.1",
   "status": "error",
+  "input": {"id": "record-42", "path": "/input/report.docx"},
   "error": {
     "code": "SOURCE_IO",
     "message": "source I/O error: No such file or directory (os error 2)",
@@ -120,6 +121,10 @@ Note the shape difference: `unresolved_targets` is **top-level** here, not under
   }
 }
 ```
+
+`input` is optional and appears on JSONL record failures when the original
+record supplied a path or `id`. It is omitted when no record context can be
+recovered, such as malformed JSON syntax.
 
 `code` is stable and one of:
 

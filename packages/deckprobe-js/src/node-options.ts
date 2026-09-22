@@ -20,7 +20,7 @@ export interface ProbeRuntimeOptions {
   onMetrics?: (metrics: ProbeRuntimeMetrics) => void;
 }
 
-export const NODE_PACKAGE_VERSION = "2.6.0";
+export const NODE_PACKAGE_VERSION = "2.7.0";
 export function runtimeError(code: string, message: string, exit_code = 4): ProbeResult {
   return { schema_version: 2, tool_version: NODE_PACKAGE_VERSION, status: "error", error: { code, message, exit_code } };
 }

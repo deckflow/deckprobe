@@ -1,6 +1,6 @@
 {
   "name": "@deckflow/deckprobe",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "CLI and browser SDK for probing PDF, Microsoft Office, and Apple iWork documents with DeckProbe",
   "type": "module",
   "license": "Apache-2.0",
@@ -63,13 +63,13 @@
     "test:bounded": "node ./scripts/bounded-smoke.mjs"
   },
   "optionalDependencies": {
-    "@deckflow/deckprobe-darwin-arm64": "2.6.0",
-    "@deckflow/deckprobe-darwin-x64": "2.6.0",
-    "@deckflow/deckprobe-linux-arm64-gnu": "2.6.0",
-    "@deckflow/deckprobe-linux-arm64-musl": "2.6.0",
-    "@deckflow/deckprobe-linux-x64-gnu": "2.6.0",
-    "@deckflow/deckprobe-linux-x64-musl": "2.6.0",
-    "@deckflow/deckprobe-win32-x64-msvc": "2.6.0"
+    "@deckflow/deckprobe-darwin-arm64": "2.7.0",
+    "@deckflow/deckprobe-darwin-x64": "2.7.0",
+    "@deckflow/deckprobe-linux-arm64-gnu": "2.7.0",
+    "@deckflow/deckprobe-linux-arm64-musl": "2.7.0",
+    "@deckflow/deckprobe-linux-x64-gnu": "2.7.0",
+    "@deckflow/deckprobe-linux-x64-musl": "2.7.0",
+    "@deckflow/deckprobe-win32-x64-msvc": "2.7.0"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
